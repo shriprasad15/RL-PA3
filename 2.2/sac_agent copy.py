@@ -43,7 +43,7 @@ class SACConfig:
 
     # SAC-specific
     start_steps: int = 10_000       # random-action warmup
-    update_after: int = 1_000       # first gradient update step
+    update_after: int = 10_000       # first gradient update step
     update_every: int = 1           # env steps between gradient steps
     grad_steps_per_update: int = 1  # gradient updates per "update_every" env step
 

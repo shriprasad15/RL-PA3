@@ -1,33 +1,24 @@
-"""DeepMind Control Suite `reacher-easy` wrappers for the three reward formulations.
+"""DeepMind Control Suite `reacher-easy` wrappers for PA3 Section 2.3.
 
-We call dm_control directly (no shimmy dependency) so we can precisely control timeouts and
-arm-resets for the Rc formulation. The resulting env presents a Gymnasium-style API.
+This file exposes a Gymnasium-style API over dm_control's reacher-easy task and
+implements the three reward formulations from the assignment:
 
-Reward formulations (PDF Fig. 3):
+Ra (dense shaped, fixed length T=1000 by default):
+    r = 1                                      if fingertip is in target
+      = -||x_goal - x_pos|| - ||action||^2     otherwise
 
-    Ra (dense):
-        r = 1                                  if fingertip in target
-          = -||x_goal - x_pos|| - ||a||^2      otherwise
-        Episode: fixed length 1000. Truncated on time-limit.
+Rb (sparse/default-style, fixed length T=1000 by default):
+    r = 1 if fingertip is in target else 0
 
-    Rb (sparse, dm_control default):
-        r = 1 if in target else 0
-        Episode: fixed length 1000. Truncated on time-limit.
+Rc (time-to-goal, variable length):
+    r = -1 until the fingertip is in target with near-zero velocity.
+    In training mode, timeout at 1000 steps resets only the arm while keeping the
+    same target, applies a -20 penalty, and continues the same episode.
+    In evaluation mode, timeout at 1000 steps ends the episode with the -20
+    penalty applied on the final step.
 
-    Rc (time-to-reach, per TA clarification):
-        r_per_step = -1
-        Episode terminates ONLY when the fingertip is in the target with near-zero velocity.
-        Timeout is NOT episode completion:
-          - after 1000 steps without completion, RESET THE ARM (randomise joints & velocity)
-            but keep the SAME target.
-          - add a reset penalty of -20 to the reward at that step.
-          - episode continues with the same counters for return and length.
-        In eval mode only, timeout IS treated as episode end; the eval return for a
-        timed-out episode is -1020 (= -1000 for the steps + -20 reset penalty).
-
-TA also said:
-- Ra / Rb / Rc should all train for 500K steps for a clean comparison.
-- Confidence intervals for the final-policy 500-ep eval should be over SEEDS, not episodes.
+Also includes the final-policy diagnostic required by the assignment:
+    steps_to_goal_and_dwell(..., max_steps=5000)
 """
 from __future__ import annotations
 
@@ -39,27 +30,31 @@ from dm_control import suite
 
 
 # ---------------------------------------------------------------------------
-# dm_control -> gymnasium adapter (minimal; only what we need)
+# dm_control -> Gymnasium adapter
 # ---------------------------------------------------------------------------
 class DMCReacherBase(gym.Env):
-    """Minimal Gymnasium wrapper around dm_control `reacher-easy` exposing flattened obs."""
+    """Minimal Gymnasium wrapper around dm_control reacher-easy.
+
+    Observation is the flattened dm_control observation dictionary.
+    """
 
     metadata = {"render_modes": []}
 
     def __init__(self, dmc_seed: int | None = None):
         super().__init__()
-        # dm_control's Task seed must be supplied at construction via task_kwargs.
-        # Its `.random` attribute is a read-only property, so we can't reseed after init.
         self._dmc_seed = dmc_seed
         self._env = self._build(dmc_seed)
-        self._action_spec = self._env.action_spec()
-        act_low = np.asarray(self._action_spec.minimum, dtype=np.float32)
-        act_high = np.asarray(self._action_spec.maximum, dtype=np.float32)
+
+        action_spec = self._env.action_spec()
+        act_low = np.asarray(action_spec.minimum, dtype=np.float32)
+        act_high = np.asarray(action_spec.maximum, dtype=np.float32)
         self.action_space = gym.spaces.Box(low=act_low, high=act_high, dtype=np.float32)
+
         ts = self._env.reset()
         obs = self._flatten_obs(ts.observation)
-        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf,
-                                                shape=obs.shape, dtype=np.float32)
+        self.observation_space = gym.spaces.Box(
+            low=-np.inf, high=np.inf, shape=obs.shape, dtype=np.float32
+        )
         self._np_random, _ = gym.utils.seeding.np_random(dmc_seed or 0)
 
     @staticmethod
@@ -71,16 +66,18 @@ class DMCReacherBase(gym.Env):
 
     @staticmethod
     def _flatten_obs(obs_dict) -> np.ndarray:
-        return np.concatenate([np.atleast_1d(v).astype(np.float32).ravel()
-                                for v in obs_dict.values()])
+        return np.concatenate([
+            np.atleast_1d(v).astype(np.float32).ravel() for v in obs_dict.values()
+        ])
 
-    # ---- raw physics helpers used by the reward formulations ----
+    def current_observation(self) -> np.ndarray:
+        """Return current flattened observation without stepping the simulator."""
+        obs_dict = self._env.task.get_observation(self._env.physics)
+        return self._flatten_obs(obs_dict)
+
+    # ---- physics helpers used by reward formulations ----
     def finger_to_target(self) -> np.ndarray:
-        """Vector from fingertip to target. Robust across dm_control API versions.
-
-        Prefer the task's `finger_to_target()` helper when available; otherwise
-        compute from named geom positions (`geom_xpos["finger"] - geom_xpos["target"]`).
-        """
+        """Vector between fingertip and target; norm is the distance to target."""
         phys = self._env.physics
         fn = getattr(phys, "finger_to_target", None)
         if callable(fn):
@@ -93,36 +90,30 @@ class DMCReacherBase(gym.Env):
             return np.zeros(2, dtype=np.float32)
 
     def joint_velocity(self) -> np.ndarray:
-        """Return angular velocities for the reacher's two joints.
-
-        `physics.data.qvel` is the canonical MuJoCo velocity vector. On the reacher
-        domain it's length-2 (shoulder, wrist). Older code paths exposed a method
-        `physics.angular_velocity()` — not present in the dm_control version we use.
-        """
+        """MuJoCo qvel for the two reacher joints."""
         return np.asarray(self._env.physics.data.qvel, dtype=np.float32).copy()
 
     def in_target(self) -> bool:
+        """Use dm_control's own target reward as the target-membership signal."""
         return bool(float(self._env.task.get_reward(self._env.physics)) > 0.5)
 
-    # ---- arm reset preserving target ----
-    def reset_arm_keep_target(self):
-        """Randomise joint angles/velocities via dm_control's internal rng but preserve the
-        target position. Used by Rc on timeout."""
+    def reset_arm_keep_target(self) -> np.ndarray:
+        """Randomize arm state while preserving target position; return new obs.
+
+        Used by Rc training after timeout.
+        """
         physics = self._env.physics
         target_pos = physics.named.model.geom_pos["target"].copy()
-        # dm_control reacher Task.initialize_episode randomises both arm and target;
-        # we call it, then restore the target.
         with physics.reset_context():
             self._env.task.initialize_episode(physics)
             physics.named.model.geom_pos["target"][:] = target_pos
+        return self.current_observation()
 
-    # ---- gym API ----
+    # ---- Gymnasium API ----
     def reset(self, *, seed: Optional[int] = None, options=None):
         if seed is not None:
             self._np_random, _ = gym.utils.seeding.np_random(seed)
-            # dm_control's Task.random is a read-only property. To change the stream
-            # we must rebuild the underlying env with the new seed. This only fires on
-            # an explicit reset(seed=...), so the cost is amortised across episodes.
+            # dm_control task RNG is set at construction, so rebuild if seed changes.
             if seed != self._dmc_seed:
                 try:
                     self._env.close()
@@ -135,15 +126,13 @@ class DMCReacherBase(gym.Env):
 
     def step(self, action):
         action = np.clip(np.asarray(action, dtype=np.float32),
-                          self.action_space.low, self.action_space.high)
+                         self.action_space.low, self.action_space.high)
         ts = self._env.step(action)
         obs = self._flatten_obs(ts.observation)
-        # default (sparse) reward reported by dm_control
         r_default = float(ts.reward if ts.reward is not None else 0.0)
         info = {"in_target": r_default > 0.5}
-        term = False  # dm_control reacher-easy never terminates by itself
-        trunc = False
-        return obs, r_default, term, trunc, info
+        # dm_control reacher-easy is normally continuing; wrappers control termination.
+        return obs, r_default, False, False, info
 
     def close(self):
         self._env.close()
@@ -153,46 +142,46 @@ class DMCReacherBase(gym.Env):
 # Reward wrappers
 # ---------------------------------------------------------------------------
 class FixedLengthRewardWrapper(gym.Wrapper):
-    """Ra or Rb — fixed-length 1000-step episodes, truncated at time limit."""
+    """Ra or Rb with fixed-length episodes."""
 
-    def __init__(self, env: DMCReacherBase, reward_name: str, max_episode_steps: int = 1000):
+    def __init__(self, env: DMCReacherBase, reward_name: str,
+                 max_episode_steps: int = 1000):
         assert reward_name in ("Ra", "Rb")
         super().__init__(env)
         self.reward_name = reward_name
-        self._elapsed = 0
-        self._max_steps = int(max_episode_steps)
+        self.max_episode_steps = int(max_episode_steps)
+        self.elapsed = 0
 
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
-        self._elapsed = 0
+        self.elapsed = 0
         return obs, info
 
     def step(self, action):
-        obs, r_default, term, trunc, info = self.env.step(action)
-        self._elapsed += 1
-        in_t = info["in_target"]
+        obs, _r_default, term, trunc, info = self.env.step(action)
+        self.elapsed += 1
+        in_target = bool(info.get("in_target", False))
 
         if self.reward_name == "Ra":
-            if in_t:
-                r = 1.0
+            if in_target:
+                reward = 1.0
             else:
                 dist = float(np.linalg.norm(self.env.finger_to_target()))
                 a = np.asarray(action, dtype=np.float32)
-                r = -dist - float(np.dot(a, a))
+                reward = -dist - float(np.dot(a, a))
         else:  # Rb
-            r = 1.0 if in_t else 0.0
+            reward = 1.0 if in_target else 0.0
 
-        trunc = trunc or (self._elapsed >= self._max_steps)
-        return obs, r, False, trunc, info
+        trunc = bool(trunc or self.elapsed >= self.max_episode_steps)
+        return obs, float(reward), False, trunc, info
 
 
 class RcTrainingWrapper(gym.Wrapper):
-    """Rc in TRAINING mode — timeouts don't end the episode.
+    """Rc training mode.
 
-    Per-step reward: -1.
-    Episode ends ONLY when fingertip is in target with near-zero velocity.
-    After every 1000 steps without termination: reset arm (keep target), add -20 penalty,
-    continue the same episode (return/length keep accumulating).
+    Per-step reward is -1. Episode terminates only when the target is reached
+    with near-zero joint velocity. Every 1000 steps without termination, reset
+    arm while keeping the same target, add -20 penalty, and continue.
     """
 
     TIMEOUT = 1000
@@ -201,63 +190,62 @@ class RcTrainingWrapper(gym.Wrapper):
 
     def __init__(self, env: DMCReacherBase):
         super().__init__(env)
-        self._steps_since_reset = 0  # counts toward the next timeout
-        self._cumulative_length = 0
-        self._cumulative_return = 0.0
-        self._n_timeouts = 0
+        self.steps_since_reset = 0
+        self.cumulative_length = 0
+        self.cumulative_return = 0.0
+        self.n_timeouts = 0
 
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
-        self._steps_since_reset = 0
-        self._cumulative_length = 0
-        self._cumulative_return = 0.0
-        self._n_timeouts = 0
+        self.steps_since_reset = 0
+        self.cumulative_length = 0
+        self.cumulative_return = 0.0
+        self.n_timeouts = 0
         return obs, info
 
     def step(self, action):
-        obs, _r_default, _t, _tr, info = self.env.step(action)
-        self._steps_since_reset += 1
-        self._cumulative_length += 1
+        obs, _r_default, _term, _trunc, info = self.env.step(action)
+        self.steps_since_reset += 1
+        self.cumulative_length += 1
 
-        r = -1.0
-        vel = self.env.joint_velocity()
-        near_zero_vel = float(np.linalg.norm(vel)) < self.GOAL_VEL_THRESHOLD
-        reached = info["in_target"] and near_zero_vel
+        reward = -1.0
+        near_zero_vel = float(np.linalg.norm(self.env.joint_velocity())) < self.GOAL_VEL_THRESHOLD
+        reached = bool(info.get("in_target", False)) and near_zero_vel
 
         if reached:
-            # episode ends — true goal completion
-            self._cumulative_return += r
+            self.cumulative_return += reward
             info.update({
-                "rc_episode_length": self._cumulative_length,
-                "rc_episode_return": self._cumulative_return,
-                "rc_n_timeouts": self._n_timeouts,
                 "rc_reached_goal": True,
+                "rc_episode_length": self.cumulative_length,
+                "rc_episode_return": self.cumulative_return,
+                "rc_n_timeouts": self.n_timeouts,
             })
-            return obs, r, True, False, info
+            return obs, float(reward), True, False, info
 
-        # timeout handling: reset arm, keep target, apply penalty, continue episode
-        if self._steps_since_reset >= self.TIMEOUT:
-            r += self.TIMEOUT_PENALTY
-            self._n_timeouts += 1
-            self.env.reset_arm_keep_target()
-            self._steps_since_reset = 0
-            # observe the new state after arm reset so the policy sees it next step
-            # The spec doesn't require us to emit the reset-state as obs here — the next
-            # step() will act from it naturally. We still return the current `obs`.
-            info.update({"rc_timeout_reset": True, "rc_n_timeouts": self._n_timeouts})
+        if self.steps_since_reset >= self.TIMEOUT:
+            reward += self.TIMEOUT_PENALTY
+            self.n_timeouts += 1
+            obs = self.env.reset_arm_keep_target()  # important: return the new state
+            self.steps_since_reset = 0
+            info.update({
+                "rc_timeout_reset": True,
+                "rc_n_timeouts": self.n_timeouts,
+            })
 
-        self._cumulative_return += r
-        info["rc_episode_length_so_far"] = self._cumulative_length
-        info["rc_episode_return_so_far"] = self._cumulative_return
-        return obs, r, False, False, info
+        self.cumulative_return += reward
+        info.update({
+            "rc_reached_goal": False,
+            "rc_episode_length_so_far": self.cumulative_length,
+            "rc_episode_return_so_far": self.cumulative_return,
+        })
+        return obs, float(reward), False, False, info
 
 
 class RcEvaluationWrapper(gym.Wrapper):
-    """Rc in EVALUATION mode — 1000-step cap; timeout ends the episode.
+    """Rc evaluation mode with a 1000-step hard cap.
 
-    If the agent does not reach the goal within 1000 steps, episode ends with cumulative
-    return = -1020 (i.e. -1 per step for 1000 steps, plus a -20 terminal penalty).
-    If it reaches the goal, return is (-1 per step) up to termination step.
+    If not reached by 1000 steps, episode truncates and receives the -20 timeout
+    penalty on the final step.
     """
 
     TIMEOUT = 1000
@@ -266,114 +254,89 @@ class RcEvaluationWrapper(gym.Wrapper):
 
     def __init__(self, env: DMCReacherBase):
         super().__init__(env)
-        self._elapsed = 0
+        self.elapsed = 0
 
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
-        self._elapsed = 0
+        self.elapsed = 0
         return obs, info
 
     def step(self, action):
-        obs, _r_default, _t, _tr, info = self.env.step(action)
-        self._elapsed += 1
+        obs, _r_default, _term, _trunc, info = self.env.step(action)
+        self.elapsed += 1
+        reward = -1.0
 
-        r = -1.0
-        vel = self.env.joint_velocity()
-        reached = info["in_target"] and float(np.linalg.norm(vel)) < self.GOAL_VEL_THRESHOLD
+        near_zero_vel = float(np.linalg.norm(self.env.joint_velocity())) < self.GOAL_VEL_THRESHOLD
+        reached = bool(info.get("in_target", False)) and near_zero_vel
         if reached:
-            return obs, r, True, False, info
-        if self._elapsed >= self.TIMEOUT:
-            r += self.TIMEOUT_PENALTY  # -1 (this step) + -20 = -21 on the last step
-            return obs, r, False, True, info
-        return obs, r, False, False, info
+            info["rc_reached_goal"] = True
+            return obs, float(reward), True, False, info
+
+        if self.elapsed >= self.TIMEOUT:
+            reward += self.TIMEOUT_PENALTY
+            info["rc_reached_goal"] = False
+            info["rc_timeout"] = True
+            return obs, float(reward), False, True, info
+
+        info["rc_reached_goal"] = False
+        return obs, float(reward), False, False, info
 
 
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
 def make_reacher(reward_name: str = "Rb", mode: str = "train",
-                  seed: Optional[int] = None) -> gym.Env:
-    """Build a reacher env with the chosen reward.
+                 seed: Optional[int] = None,
+                 max_episode_steps: int = 1000) -> gym.Env:
+    """Build reacher-easy with selected reward.
 
-    mode='train' vs 'eval' only matters for Rc:
-      train -> RcTrainingWrapper (timeout-reset-continuation)
-      eval  -> RcEvaluationWrapper (1000-step hard cap, -1020 on timeout)
-    For Ra and Rb the two modes are identical (fixed length 1000).
-
-    `seed`: optional dm_control task seed (passed at construction). Most callers leave
-    it None — the Gym env.reset(seed=...) path will rebuild the env with the seed on
-    the first reset.
+    Args:
+        reward_name: one of {"Ra", "Rb", "Rc"}.
+        mode: "train" or "eval". Only affects Rc.
+        seed: optional dm_control task seed.
+        max_episode_steps: used for Ra/Rb fixed-length wrappers. Set to 5000 for
+            the final diagnostic required in Q3(a).
     """
+    assert mode in ("train", "eval")
     base = DMCReacherBase(dmc_seed=seed)
     if reward_name in ("Ra", "Rb"):
-        return FixedLengthRewardWrapper(base, reward_name)
+        return FixedLengthRewardWrapper(base, reward_name,
+                                        max_episode_steps=max_episode_steps)
     if reward_name == "Rc":
         return RcTrainingWrapper(base) if mode == "train" else RcEvaluationWrapper(base)
-    raise ValueError(f"Unknown reward_name {reward_name!r}")
+    raise ValueError(f"Unknown reward_name={reward_name!r}")
 
 
 # ---------------------------------------------------------------------------
-# Cross-evaluation reward functions (no mutation of env state)
+# Final-policy behavior metrics for Q3(a)
 # ---------------------------------------------------------------------------
-def reward_fn_Ra(env, obs, action, r, info):
-    # env here is whatever was passed to evaluate_policy(); we reach the base via .unwrapped.env chain
-    base = env
-    while hasattr(base, "env") and not isinstance(base, DMCReacherBase):
-        base = base.env
-    if info.get("in_target", False):
-        return 1.0
-    dist = float(np.linalg.norm(base.finger_to_target()))
-    a = np.asarray(action, dtype=np.float32)
-    return -dist - float(np.dot(a, a))
-
-
-def reward_fn_Rb(env, obs, action, r, info):
-    return 1.0 if info.get("in_target", False) else 0.0
-
-
-def reward_fn_Rc(env, obs, action, r, info):
-    # running Rc metric during evaluation of an Ra/Rb policy:
-    # -1 per step; we do not have a live cumulative state for termination here, so this
-    # just reports the cumulative per-step cost (the "time cost"). Combined with Rb_eval
-    # as the success indicator, the reader can infer time-to-reach.
-    return -1.0
-
-
-CROSS_EVAL_FNS = {
-    "Ra_eval": reward_fn_Ra,
-    "Rb_eval": reward_fn_Rb,
-    "Rc_eval": reward_fn_Rc,
-}
-
-
-# ---------------------------------------------------------------------------
-# Policy-quality metrics for Q3(a)
-# ---------------------------------------------------------------------------
-def steps_to_goal_and_dwell(env_fn, act_fn, n_episodes: int = 500, max_steps: int = 5000,
+def steps_to_goal_and_dwell(env_fn, act_fn, n_episodes: int = 500,
+                            max_steps: int = 5000,
                             seed_offset: int = 20_000):
-    """For each of `n_episodes` deterministic rollouts of length `max_steps`,
-    return (steps_to_first_reach, steps_spent_in_target). If the agent never reaches,
-    steps_to_goal = max_steps and steps_in_target = 0.
+    """Compute steps-to-goal and steps-in-target for deterministic rollouts.
 
-    This function expects a fixed-length env (Ra/Rb style); for Rc pass an Ra or Rb env
-    so the arm is not silently reset mid-episode.
+    If the agent never reaches the target, steps_to_goal=max_steps and
+    steps_in_target=0. Use an Ra/Rb fixed-length env with max_episode_steps=5000
+    so this diagnostic is not truncated at 1000.
     """
-    s2g, sit = [], []
+    steps_to_goal = []
+    steps_in_target = []
     env = env_fn()
     for ep in range(n_episodes):
-        obs, info = env.reset(seed=seed_offset + ep)
-        reached_at = None
+        obs, _info = env.reset(seed=seed_offset + ep)
+        first_reach = None
         dwell = 0
         for t in range(max_steps):
-            a = act_fn(obs)
-            obs, r, term, trunc, info = env.step(a)
-            if info.get("in_target", False):
-                if reached_at is None:
-                    reached_at = t
+            action = act_fn(obs)
+            obs, _r, term, trunc, info = env.step(action)
+            in_target = bool(info.get("in_target", False))
+            if in_target and first_reach is None:
+                first_reach = t
+            if first_reach is not None and in_target:
                 dwell += 1
             if term or trunc:
                 break
-        s2g.append(reached_at if reached_at is not None else max_steps)
-        sit.append(dwell)
+        steps_to_goal.append(first_reach if first_reach is not None else max_steps)
+        steps_in_target.append(dwell if first_reach is not None else 0)
     env.close()
-    return np.asarray(s2g), np.asarray(sit)
+    return np.asarray(steps_to_goal), np.asarray(steps_in_target)
