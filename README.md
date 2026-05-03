@@ -73,10 +73,33 @@ Per-job stdout/stderr goes to `run_logs/<section>__<tag>__seed<k>.log`.
 After the CLI finishes, open the matching notebook and just run the "Plot"
 cells — they read the same JSONs the CLI wrote. No re-training.
 
-**Workers tuning on the RTX 5090:**
-- `--workers 6` is a safe default (each SAC agent uses <1 GB VRAM).
-- Reacher (MuJoCo) is more CPU-bound; you can push `--workers 8` on a 24-core CPU.
-- If you see CUDA OOM, drop `--workers`.
+**Worker-count tuning:**
+
+First, probe your machine:
+
+```bash
+python run_all.py --probe
+```
+
+That prints CPU / RAM / GPU capacity and a recommended `--workers` number.
+
+The dispatcher **pins thread pools** (`OMP_NUM_THREADS`, `MKL_NUM_THREADS`, etc.)
+per worker to `max(1, nproc // workers)` so you don't get thread oversubscription.
+Override with `--threads-per-worker N` if you want.
+
+Rule of thumb for an RTX 5090 (32 GB) + Ultra 9 (24 cores):
+
+| `--workers` | Each worker gets | Stable? | Notes |
+|---|---|---|---|
+| 6  | 4 CPU threads | very stable | conservative; good first run |
+| 12 | 2 CPU threads | typical sweet spot | ~2× faster than 6 |
+| 16 | 1 CPU thread + oversubscribed GPU | usually fine | monitor `nvidia-smi` |
+| 24 | 1 CPU thread | marginal | CPU-saturated; gains disappear |
+
+More is not always better. Each SAC/PEBBLE worker uses ~1.2 GB VRAM and
+~2 CPU threads effectively. Beyond ~16 workers you start saturating the CPU
+and the GPU context-switch overhead dominates — the total throughput flatlines
+or drops. If you see CUDA OOM, drop `--workers` by 2 and retry.
 
 Full-run catalogue sizes: 212 jobs for 2.1, 75 for 2.2, 45 for 2.3, 240 for 3
 (572 total). On an RTX 5090 most jobs run in 10-30 minutes each; expect

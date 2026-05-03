@@ -220,11 +220,95 @@ def build_catalogue(*, smoke: bool, sections: list[str] | None) -> list[Job]:
 
 
 # =============================================================================
+# Host probe — what can this machine actually handle?
+# =============================================================================
+def _probe_host():
+    import shutil
+    n_cpu = os.cpu_count() or 1
+    print("=" * 60)
+    print("HOST CAPACITY PROBE")
+    print("=" * 60)
+    print(f"CPU cores (os.cpu_count): {n_cpu}")
+
+    # system RAM
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemTotal"):
+                    kb = int(line.split()[1]); print(f"system RAM: {kb/1024/1024:.1f} GB"); break
+    except FileNotFoundError:
+        # macOS fallback
+        try:
+            out = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True).strip()
+            print(f"system RAM: {int(out)/1024**3:.1f} GB")
+        except Exception:
+            print("system RAM: unknown")
+
+    # GPU
+    gpu_mem_gb = None
+    if shutil.which("nvidia-smi"):
+        try:
+            q = subprocess.check_output(
+                ["nvidia-smi", "--query-gpu=name,memory.total,memory.free",
+                 "--format=csv,noheader"], text=True).strip()
+            print("GPUs:")
+            for line in q.splitlines():
+                name, mem_t, mem_f = [x.strip() for x in line.split(",")]
+                print(f"  {name}  total={mem_t}  free={mem_f}")
+                # crude parse of the first GPU total for sizing
+                if gpu_mem_gb is None:
+                    gpu_mem_gb = float(mem_t.split()[0]) / 1024  # MiB -> GiB
+        except Exception as e:
+            print(f"nvidia-smi failed: {e}")
+    else:
+        print("no nvidia-smi (CPU-only host)")
+
+    # Safe worker recommendation.
+    # Rule-of-thumb: one SAC/PEBBLE worker uses ~1.2 GB VRAM + ~800 MB RAM and
+    # can usefully use ~2 CPU threads. Reacher (MuJoCo) is a bit more CPU-heavy.
+    if gpu_mem_gb:
+        vram_workers = max(1, int(gpu_mem_gb * 0.85 / 1.5))  # 1.5 GB headroom per worker
+    else:
+        vram_workers = 1
+    cpu_workers = max(1, n_cpu // 2)
+    rec = min(vram_workers, cpu_workers)
+    print()
+    print(f"Recommendation: --workers {rec}  "
+          f"(vram-bound: {vram_workers}, cpu-bound: {cpu_workers}; take the min)")
+    print(f"With --workers {rec}, each worker gets {max(1, n_cpu // rec)} CPU threads.")
+    print()
+    print("Heuristics for pushing higher:")
+    print("  * Stable at recommended?  Try workers+2, watch nvidia-smi + htop.")
+    print("  * Reacher-heavy workloads tolerate more CPU workers (MuJoCo is CPU-bound).")
+    print("  * LunarLander/Pendulum are GPU-light; you can push more there.")
+    print("  * If you see CUDA OOM in run_logs/, drop --workers by 2 and retry.")
+
+
+# =============================================================================
 # Dispatcher
 # =============================================================================
+def _child_env(threads_per_worker: int) -> dict:
+    """Environment for a subprocess worker.
+
+    CRITICAL: pin thread pools to `threads_per_worker`. Without this, PyTorch/MKL/OMP
+    each grab `nproc` threads per worker, so running N workers in parallel spawns
+    N x 24 competing threads on a 24-core box and the whole thing thrashes.
+    """
+    env = os.environ.copy()
+    env["OMP_NUM_THREADS"] = str(threads_per_worker)
+    env["MKL_NUM_THREADS"] = str(threads_per_worker)
+    env["OPENBLAS_NUM_THREADS"] = str(threads_per_worker)
+    env["NUMEXPR_NUM_THREADS"] = str(threads_per_worker)
+    env["VECLIB_MAXIMUM_THREADS"] = str(threads_per_worker)
+    # PyTorch respects these two via env even before torch is imported
+    env.setdefault("TORCH_NUM_THREADS", str(threads_per_worker))
+    return env
+
+
 def _run_job(job_dict: dict) -> dict:
     """Subprocess worker. Runs one experiment end-to-end."""
     job = Job(**{k: job_dict[k] for k in ("section", "tag", "cli_args", "seed")})
+    threads_per_worker = int(job_dict.get("threads_per_worker", 1))
     out_path = job.output_path()
     log_name = f"{job.section}__{job.tag}__seed{job.seed}.log"
     os.makedirs(RUN_LOG_DIR, exist_ok=True)
@@ -237,10 +321,12 @@ def _run_job(job_dict: dict) -> dict:
     t0 = time.time()
     try:
         with open(log_path, "w") as f:
-            f.write(f"# cmd: {shlex.join(cmd)}\n# cwd: {job.section_dir()}\n\n")
+            f.write(f"# cmd: {shlex.join(cmd)}\n# cwd: {job.section_dir()}\n")
+            f.write(f"# threads_per_worker: {threads_per_worker}\n\n")
             f.flush()
             p = subprocess.Popen(cmd, cwd=job.section_dir(),
-                                 stdout=f, stderr=subprocess.STDOUT, env=os.environ.copy())
+                                 stdout=f, stderr=subprocess.STDOUT,
+                                 env=_child_env(threads_per_worker))
             rc = p.wait()
         dur = time.time() - t0
         return {"status": "ok" if rc == 0 else "fail",
@@ -250,18 +336,36 @@ def _run_job(job_dict: dict) -> dict:
 
 
 def main():
+    # Short-circuit --probe so users don't have to pass --smoke/--full.
+    if "--probe" in sys.argv[1:]:
+        _probe_host(); return
+
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--smoke", action="store_true", help="2 seeds, reduced budgets")
     g.add_argument("--full",  action="store_true", help="15 seeds, TA-mandated budgets")
     ap.add_argument("--workers", type=int, default=4,
                     help="number of concurrent subprocesses (default 4)")
+    ap.add_argument("--threads-per-worker", type=int, default=None,
+                    help="CPU threads per worker for OMP/MKL. "
+                         "Default = max(1, floor(os.cpu_count()/workers)). "
+                         "Pin this to avoid thread-oversubscription.")
     ap.add_argument("--sections", nargs="+", default=None,
                     choices=["2.1", "2.2", "2.3", "3"],
                     help="restrict to these section subset")
     ap.add_argument("--dry-run", action="store_true",
                     help="enumerate jobs but don't launch")
+    ap.add_argument("--probe", action="store_true",
+                    help="print host capacity (CPU/RAM/GPU) and a worker-count "
+                         "recommendation, then exit")
     args = ap.parse_args()
+
+    if args.probe:
+        _probe_host()
+        return
+
+    n_cpu = os.cpu_count() or 1
+    tpw = args.threads_per_worker or max(1, n_cpu // max(1, args.workers))
 
     jobs = build_catalogue(smoke=args.smoke, sections=args.sections)
     total = len(jobs)
@@ -269,7 +373,9 @@ def main():
     done = total - len(todo)
 
     print(f"catalogue: {total} jobs total, {done} already done, {len(todo)} to run")
-    print(f"workers  : {args.workers}")
+    print(f"host cpu : {n_cpu} cores")
+    print(f"workers  : {args.workers}  (threads per worker: {tpw}; total threads: "
+          f"{args.workers * tpw})")
     if args.dry_run:
         for j in todo[:25]:
             print(f"  [{j.section}] {j.tag} seed={j.seed}")
@@ -285,7 +391,8 @@ def main():
     t0 = time.time()
     completed = 0; failed = 0
     with ProcessPoolExecutor(max_workers=args.workers) as ex:
-        futures = {ex.submit(_run_job, j.__dict__): j for j in todo}
+        futures = {ex.submit(_run_job, {**j.__dict__, "threads_per_worker": tpw}): j
+                   for j in todo}
         for fut in as_completed(futures):
             res = fut.result()
             j = futures[fut]
