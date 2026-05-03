@@ -1,0 +1,19 @@
+python run_all.py --smoke --workers 12  
+catalogue: 84 jobs total, 0 already done, 84 to run
+host cpu : 24 cores
+workers  : 12  (threads per worker: 2; total threads: 24)
+[1/84] OK  [2.1] auto_theta-90 seed=0  (796s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta-90__seed0.log
+[2/84] OK  [2.1] auto_theta-10 seed=1  (796s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta-10__seed1.log
+[3/84] OK  [2.1] auto_theta-90 seed=1  (797s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta-90__seed1.log
+[4/84] OK  [2.1] auto_theta30 seed=0  (797s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta30__seed0.log
+[5/84] OK  [2.1] auto_theta-60 seed=0  (797s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta-60__seed0.log
+[6/84] OK  [2.1] auto_theta30 seed=1  (797s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta30__seed1.log
+[7/84] OK  [2.1] auto_theta90 seed=0  (797s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta90__seed0.log
+[8/84] OK  [2.1] auto_theta-10 seed=0  (797s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta-10__seed0.log
+[9/84] OK  [2.1] auto_theta0 seed=1  (797s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta0__seed1.log
+[10/84] OK  [2.1] auto_theta90 seed=1  (797s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta90__seed1.log
+[11/84] OK  [2.1] auto_theta0 seed=0  (797s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta0__seed0.log
+[12/84] OK  [2.1] auto_theta-60 seed=1  (797s)  log=/research/assignments/RL/RL-PA3/run_logs/2.1__auto_theta-60__seed1.log
+
+
+
