@@ -97,23 +97,36 @@ point for SAC is around **6-8 concurrent workers**.
 **Exception: Reacher (section 2.3).** MuJoCo physics runs on CPU, not GPU, so
 Reacher scales nearly linearly with workers up to your core count.
 
-Best split on the Ultra-9 + 5090 rig:
+### Two run modes
+
+**Full, 15 seeds (the TA-recommended number).** ~20-30 h wall-clock.
 
 ```bash
-./run_full.sh            # dispatches phase A (Reacher, 16 workers on CPU)
-                         # + phase B (GPU sections, 8 workers) in parallel
+./run_full.sh
 ```
 
-That should finish the 572-job full run in ~20-30 hours wall-clock, vs. ~60-80
-hours at a single `--workers 12`. Both phases are fully resumable — interrupt
-with Ctrl-C and re-run `run_full.sh` to pick up where it left off.
-
-Manual equivalent:
+**Crunch, 5 seeds, bonus skipped.** ~14-18 h wall-clock. Defensible 95% CI.
+Use this if you're up against the deadline; bonus section 3 can be run later.
 
 ```bash
-python run_all.py --full --workers 16 --sections 2.3 &       # CPU-bound
-python run_all.py --full --workers 8  --sections 2.1 2.2 3   # GPU-bound
+./run_crunch.sh
 ```
+
+Both dispatch in two parallel phases:
+- Reacher (2.3) on CPU with 16 workers — dm_control's MuJoCo is CPU-bound.
+- Pendulum / LunarLander (+ PEBBLE in `run_full.sh`) on GPU with 6-8 workers —
+  the 5090 saturates there; more workers just divide the same throughput.
+
+Resumable: Ctrl-C then re-run; completed jobs are skipped.
+
+Manual form, for partial runs:
+
+```bash
+python run_all.py --full --seeds 5  --workers 16 --sections 2.3 &     # CPU-bound
+python run_all.py --full --seeds 5  --workers 6  --sections 2.1 2.2   # GPU-bound
+```
+
+`--seeds N` overrides the per-experiment seed count. Omit for the default 15.
 
 Full-run catalogue sizes: 212 jobs for 2.1, 75 for 2.2, 45 for 2.3, 240 for 3
 (572 total). On an RTX 5090 most jobs run in 10-30 minutes each; expect

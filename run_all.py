@@ -60,8 +60,13 @@ class Job:
         return os.path.join(REPO_ROOT, self.section)
 
 
-def build_catalogue(*, smoke: bool, sections: list[str] | None) -> list[Job]:
-    """Enumerate every (experiment, seed) combo."""
+def build_catalogue(*, smoke: bool, sections: list[str] | None,
+                     n_seeds_override: int | None = None) -> list[Job]:
+    """Enumerate every (experiment, seed) combo.
+
+    n_seeds_override: if set, use this many seeds per experiment instead of the default
+    (2 for smoke, 15 for full). Useful when the full run has to fit a tight deadline.
+    """
     jobs: list[Job] = []
 
     if smoke:
@@ -81,7 +86,7 @@ def build_catalogue(*, smoke: bool, sections: list[str] | None) -> list[Job]:
         N_SEEDS_GRID = 1
         BUDGETS = [50, 200]
     else:
-        N_SEEDS = 15
+        N_SEEDS = n_seeds_override if n_seeds_override is not None else 15
         # Budgets tuned for convergence without waste. SAC on Pendulum converges well
         # under 80K; LunarLander continuous ~250-300K; Reacher-easy 500K per TA;
         # PEBBLE adds ~20-30% overhead so budgets are set modestly higher than SAC-GT.
@@ -380,6 +385,9 @@ def main():
     ap.add_argument("--probe", action="store_true",
                     help="print host capacity (CPU/RAM/GPU) and a worker-count "
                          "recommendation, then exit")
+    ap.add_argument("--seeds", type=int, default=None,
+                    help="override the seed count (default 2 for --smoke, 15 for --full). "
+                         "Use --seeds 5 to trim the full run to a deadline.")
     args = ap.parse_args()
 
     if args.probe:
@@ -389,7 +397,8 @@ def main():
     n_cpu = os.cpu_count() or 1
     tpw = args.threads_per_worker or max(1, n_cpu // max(1, args.workers))
 
-    jobs = build_catalogue(smoke=args.smoke, sections=args.sections)
+    jobs = build_catalogue(smoke=args.smoke, sections=args.sections,
+                            n_seeds_override=args.seeds)
     total = len(jobs)
     todo = [j for j in jobs if not os.path.exists(j.output_path())]
     done = total - len(todo)
