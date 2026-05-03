@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import os
 
+import torch
+
 from sac_core import set_global_seed, save_log, get_device
 from sac_agent import SACAgent, SACConfig, train_sac
 from pebble import PebbleAgent, PebbleConfig, train_pebble
@@ -34,6 +36,12 @@ def run_sac_gt_pendulum(theta: int, seed: int, tag: str, *,
     }
     os.makedirs(LOG_DIR, exist_ok=True)
     save_log(log, os.path.join(LOG_DIR, f"{tag}_seed{seed}.json"), config=run_config)
+    torch.save({
+        "actor": agent.actor.state_dict(), "critic": agent.critic.state_dict(),
+        "critic_target": agent.critic_target.state_dict(),
+        "log_alpha": agent.log_alpha.detach().cpu(),
+        "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": lim,
+    }, os.path.join(LOG_DIR, f"{tag}_seed{seed}_checkpoint.pt"))
 
 
 def run_pebble_pendulum(theta: int, seed: int, tag: str, *,
@@ -66,6 +74,17 @@ def run_pebble_pendulum(theta: int, seed: int, tag: str, *,
     }
     os.makedirs(LOG_DIR, exist_ok=True)
     save_log(log, os.path.join(LOG_DIR, f"{tag}_seed{seed}.json"), config=run_config)
+    # Save actor + reward-model ensemble + preference buffer snapshot
+    torch.save({
+        "actor": agent.actor.state_dict(),
+        "critic": agent.critic.state_dict(),
+        "critic_target": agent.critic_target.state_dict(),
+        "reward_model": agent.reward_model.state_dict(),
+        "log_alpha": agent.log_alpha.detach().cpu(),
+        "pref_buffer_size": len(agent.pref),
+        "feedback_used": agent.total_feedback_used,
+        "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": lim,
+    }, os.path.join(LOG_DIR, f"{tag}_seed{seed}_checkpoint.pt"))
 
 
 def run_pebble_reacher(reward_name: str, seed: int, tag: str, *,
@@ -101,3 +120,13 @@ def run_pebble_reacher(reward_name: str, seed: int, tag: str, *,
     }
     os.makedirs(LOG_DIR, exist_ok=True)
     save_log(log, os.path.join(LOG_DIR, f"{tag}_seed{seed}.json"), config=run_config)
+    torch.save({
+        "actor": agent.actor.state_dict(),
+        "critic": agent.critic.state_dict(),
+        "critic_target": agent.critic_target.state_dict(),
+        "reward_model": agent.reward_model.state_dict(),
+        "log_alpha": agent.log_alpha.detach().cpu(),
+        "pref_buffer_size": len(agent.pref),
+        "feedback_used": agent.total_feedback_used,
+        "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": lim,
+    }, os.path.join(LOG_DIR, f"{tag}_seed{seed}_checkpoint.pt"))

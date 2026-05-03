@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 
 import numpy as np
+import torch
 
 from sac_core import (set_global_seed, save_log, EvalLog, evaluate_policy, get_device)
 from sac_agent import SACAgent, SACConfig, train_sac
@@ -41,6 +42,13 @@ def run_continuous(seed: int, tag: str, *, total_steps: int, eval_every: int,
     }
     os.makedirs(LOG_DIR, exist_ok=True)
     save_log(log, os.path.join(LOG_DIR, f"{tag}_seed{seed}.json"), config=run_config)
+    torch.save({
+        "actor": agent.actor.state_dict(),
+        "critic": agent.critic.state_dict(),
+        "critic_target": agent.critic_target.state_dict(),
+        "log_alpha": agent.log_alpha.detach().cpu(),
+        "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": lim,
+    }, os.path.join(LOG_DIR, f"{tag}_seed{seed}_checkpoint.pt"))
 
 
 def _hover_hits_fn(env, obs, action, r, info):
@@ -108,6 +116,13 @@ def run_hover_switch(seed: int, tag: str, *, autotune: bool, init_alpha: float,
     }
     os.makedirs(LOG_DIR, exist_ok=True)
     save_log(log, os.path.join(LOG_DIR, f"{tag}_seed{seed}.json"), config=run_config)
+    torch.save({
+        "actor": agent.actor.state_dict(),
+        "critic": agent.critic.state_dict(),
+        "critic_target": agent.critic_target.state_dict(),
+        "log_alpha": agent.log_alpha.detach().cpu(),
+        "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": act_limit,
+    }, os.path.join(LOG_DIR, f"{tag}_seed{seed}_checkpoint.pt"))
 
 
 def run_disc_sac(seed: int, tag: str, *, total_steps: int, eval_every: int, device=None):
@@ -132,6 +147,13 @@ def run_disc_sac(seed: int, tag: str, *, total_steps: int, eval_every: int, devi
     }
     os.makedirs(LOG_DIR, exist_ok=True)
     save_log(log, os.path.join(LOG_DIR, f"{tag}_seed{seed}.json"), config=run_config)
+    torch.save({
+        "actor": agent.actor.state_dict(),
+        "critic": agent.critic.state_dict(),
+        "critic_target": agent.critic_target.state_dict(),
+        "log_alpha": agent.log_alpha.detach().cpu(),
+        "obs_dim": obs_dim, "n_actions": n_actions,
+    }, os.path.join(LOG_DIR, f"{tag}_seed{seed}_checkpoint.pt"))
 
 
 def run_dqn(seed: int, tag: str, *, total_steps: int, eval_every: int, device=None):
@@ -158,3 +180,7 @@ def run_dqn(seed: int, tag: str, *, total_steps: int, eval_every: int, device=No
     }
     os.makedirs(LOG_DIR, exist_ok=True)
     save_log(log, os.path.join(LOG_DIR, f"{tag}_seed{seed}.json"), config=run_config)
+    torch.save({
+        "q": agent.q.state_dict(), "q_target": agent.q_target.state_dict(),
+        "obs_dim": obs_dim, "n_actions": n_actions,
+    }, os.path.join(LOG_DIR, f"{tag}_seed{seed}_checkpoint.pt"))

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import os
 
+import torch
+
 from sac_core import set_global_seed, save_log, get_device
 from sac_agent import SACAgent, SACConfig, train_sac
 from pendulum_env import make_pendulum
@@ -48,4 +50,15 @@ def run_one(theta_target: float, seed: int, tag: str, *,
     os.makedirs(LOG_DIR, exist_ok=True)
     path = os.path.join(LOG_DIR, f"{tag}_seed{seed}.json")
     save_log(log, path, config=run_config)
+
+    # Save final actor + critic checkpoint so the policy can be re-loaded for
+    # inspection / render / additional eval episodes later.
+    ckpt_path = os.path.join(LOG_DIR, f"{tag}_seed{seed}_checkpoint.pt")
+    torch.save({
+        "actor": agent.actor.state_dict(),
+        "critic": agent.critic.state_dict(),
+        "critic_target": agent.critic_target.state_dict(),
+        "log_alpha": agent.log_alpha.detach().cpu(),
+        "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": act_limit,
+    }, ckpt_path)
     return path
