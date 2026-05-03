@@ -82,16 +82,19 @@ def build_catalogue(*, smoke: bool, sections: list[str] | None) -> list[Job]:
         BUDGETS = [50, 200]
     else:
         N_SEEDS = 15
+        # Budgets tuned for convergence without waste. SAC on Pendulum converges well
+        # under 80K; LunarLander continuous ~250-300K; Reacher-easy 500K per TA;
+        # PEBBLE adds ~20-30% overhead so budgets are set modestly higher than SAC-GT.
         P = {
-            "pend_total":   150_000, "pend_eval":   10_000,
-            "ll_cont_total": 400_000, "ll_disc_total": 300_000,
-            "ll_eval":       10_000,
-            "ll_hover_pre":  300_000, "ll_hover_post": 300_000,
-            "reach_total":   500_000, "reach_eval":    10_000,
-            "pebble_pend_total":  200_000,
-            "pebble_reach_total": 500_000,
-            "pebble_budget_pend": 500,
-            "pebble_budget_reach": 1000,
+            "pend_total":       80_000, "pend_eval":    10_000,   # was 150K
+            "ll_cont_total":   300_000, "ll_disc_total": 250_000, # was 400K/300K
+            "ll_eval":          10_000,
+            "ll_hover_pre":    250_000, "ll_hover_post": 250_000, # was 300K/300K
+            "reach_total":     500_000, "reach_eval":    10_000,  # TA recommended; unchanged
+            "pebble_pend_total":  120_000,                          # was 200K
+            "pebble_reach_total": 500_000,                          # unchanged
+            "pebble_budget_pend":    500,
+            "pebble_budget_reach":  1000,
         }
         ALPHA_GRID = [0.05, 0.1, 0.2, 0.5]
         N_SEEDS_GRID = 2
@@ -216,6 +219,25 @@ def build_catalogue(*, smoke: bool, sections: list[str] | None) -> list[Job]:
         key = (j.section, j.tag, j.seed, tuple(j.cli_args))
         if key in seen: continue
         seen.add(key); deduped.append(j)
+
+    # Order longest-running first: 2.3 Reacher and 3 PEBBLE are heaviest.
+    # Parse --total-steps out of cli_args for a rough cost proxy.
+    def _cost(job):
+        steps = 0
+        a = job.cli_args
+        for i, v in enumerate(a):
+            if v == "--total-steps" and i + 1 < len(a):
+                steps = max(steps, int(a[i + 1]))
+            if v == "--steps-pre" and i + 1 < len(a):
+                steps += int(a[i + 1])
+            if v == "--steps-post" and i + 1 < len(a):
+                steps += int(a[i + 1])
+        # heavier cost for Reacher (MuJoCo) and PEBBLE (reward-model training + relabelling)
+        weight = 1.0
+        if job.section == "2.3": weight *= 1.6
+        if job.section == "3" and "pebble" in job.tag: weight *= 1.3
+        return steps * weight
+    deduped.sort(key=_cost, reverse=True)
     return deduped
 
 

@@ -87,19 +87,33 @@ The dispatcher **pins thread pools** (`OMP_NUM_THREADS`, `MKL_NUM_THREADS`, etc.
 per worker to `max(1, nproc // workers)` so you don't get thread oversubscription.
 Override with `--threads-per-worker N` if you want.
 
-Rule of thumb for an RTX 5090 (32 GB) + Ultra 9 (24 cores):
+**Rule of thumb: don't crank `--workers` past GPU saturation.**
 
-| `--workers` | Each worker gets | Stable? | Notes |
-|---|---|---|---|
-| 6  | 4 CPU threads | very stable | conservative; good first run |
-| 12 | 2 CPU threads | typical sweet spot | ~2× faster than 6 |
-| 16 | 1 CPU thread + oversubscribed GPU | usually fine | monitor `nvidia-smi` |
-| 24 | 1 CPU thread | marginal | CPU-saturated; gains disappear |
+Once the 5090 is saturated (≥90% util in `nvidia-smi`), adding more workers just
+divides the same throughput into more slices — each job takes proportionally
+longer and total wall-clock stays roughly flat. On an RTX 5090 the saturation
+point for SAC is around **6-8 concurrent workers**.
 
-More is not always better. Each SAC/PEBBLE worker uses ~1.2 GB VRAM and
-~2 CPU threads effectively. Beyond ~16 workers you start saturating the CPU
-and the GPU context-switch overhead dominates — the total throughput flatlines
-or drops. If you see CUDA OOM, drop `--workers` by 2 and retry.
+**Exception: Reacher (section 2.3).** MuJoCo physics runs on CPU, not GPU, so
+Reacher scales nearly linearly with workers up to your core count.
+
+Best split on the Ultra-9 + 5090 rig:
+
+```bash
+./run_full.sh            # dispatches phase A (Reacher, 16 workers on CPU)
+                         # + phase B (GPU sections, 8 workers) in parallel
+```
+
+That should finish the 572-job full run in ~20-30 hours wall-clock, vs. ~60-80
+hours at a single `--workers 12`. Both phases are fully resumable — interrupt
+with Ctrl-C and re-run `run_full.sh` to pick up where it left off.
+
+Manual equivalent:
+
+```bash
+python run_all.py --full --workers 16 --sections 2.3 &       # CPU-bound
+python run_all.py --full --workers 8  --sections 2.1 2.2 3   # GPU-bound
+```
 
 Full-run catalogue sizes: 212 jobs for 2.1, 75 for 2.2, 45 for 2.3, 240 for 3
 (572 total). On an RTX 5090 most jobs run in 10-30 minutes each; expect
