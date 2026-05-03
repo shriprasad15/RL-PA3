@@ -76,10 +76,30 @@ class DMCReacherBase(gym.Env):
 
     # ---- raw physics helpers used by the reward formulations ----
     def finger_to_target(self) -> np.ndarray:
-        return np.asarray(self._env.physics.finger_to_target(), dtype=np.float32)
+        """Vector from fingertip to target. Robust across dm_control API versions.
+
+        Prefer the task's `finger_to_target()` helper when available; otherwise
+        compute from named geom positions (`geom_xpos["finger"] - geom_xpos["target"]`).
+        """
+        phys = self._env.physics
+        fn = getattr(phys, "finger_to_target", None)
+        if callable(fn):
+            return np.asarray(fn(), dtype=np.float32).copy()
+        try:
+            finger = phys.named.data.geom_xpos["finger"][:2]
+            target = phys.named.data.geom_xpos["target"][:2]
+            return np.asarray(target - finger, dtype=np.float32)
+        except Exception:
+            return np.zeros(2, dtype=np.float32)
 
     def joint_velocity(self) -> np.ndarray:
-        return np.asarray(self._env.physics.angular_velocity(), dtype=np.float32)
+        """Return angular velocities for the reacher's two joints.
+
+        `physics.data.qvel` is the canonical MuJoCo velocity vector. On the reacher
+        domain it's length-2 (shoulder, wrist). Older code paths exposed a method
+        `physics.angular_velocity()` — not present in the dm_control version we use.
+        """
+        return np.asarray(self._env.physics.data.qvel, dtype=np.float32).copy()
 
     def in_target(self) -> bool:
         return bool(float(self._env.task.get_reward(self._env.physics)) > 0.5)
