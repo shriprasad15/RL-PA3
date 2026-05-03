@@ -46,20 +46,28 @@ class DMCReacherBase(gym.Env):
 
     metadata = {"render_modes": []}
 
-    def __init__(self):
+    def __init__(self, dmc_seed: int | None = None):
         super().__init__()
-        self._env = suite.load(domain_name="reacher", task_name="easy")
+        # dm_control's Task seed must be supplied at construction via task_kwargs.
+        # Its `.random` attribute is a read-only property, so we can't reseed after init.
+        self._dmc_seed = dmc_seed
+        self._env = self._build(dmc_seed)
         self._action_spec = self._env.action_spec()
-        # Observation: flat concat of (position, velocity, to_target) = 2+2+2 = 6
         act_low = np.asarray(self._action_spec.minimum, dtype=np.float32)
         act_high = np.asarray(self._action_spec.maximum, dtype=np.float32)
         self.action_space = gym.spaces.Box(low=act_low, high=act_high, dtype=np.float32)
-        # probe obs dim
         ts = self._env.reset()
         obs = self._flatten_obs(ts.observation)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf,
                                                 shape=obs.shape, dtype=np.float32)
-        self._np_random, _ = gym.utils.seeding.np_random(0)
+        self._np_random, _ = gym.utils.seeding.np_random(dmc_seed or 0)
+
+    @staticmethod
+    def _build(seed: int | None):
+        kwargs = {"domain_name": "reacher", "task_name": "easy"}
+        if seed is not None:
+            kwargs["task_kwargs"] = {"random": int(seed)}
+        return suite.load(**kwargs)
 
     @staticmethod
     def _flatten_obs(obs_dict) -> np.ndarray:
@@ -92,8 +100,16 @@ class DMCReacherBase(gym.Env):
     def reset(self, *, seed: Optional[int] = None, options=None):
         if seed is not None:
             self._np_random, _ = gym.utils.seeding.np_random(seed)
-            # seed dm_control's internal random state too
-            self._env.task.random = np.random.RandomState(seed)
+            # dm_control's Task.random is a read-only property. To change the stream
+            # we must rebuild the underlying env with the new seed. This only fires on
+            # an explicit reset(seed=...), so the cost is amortised across episodes.
+            if seed != self._dmc_seed:
+                try:
+                    self._env.close()
+                except Exception:
+                    pass
+                self._env = self._build(seed)
+                self._dmc_seed = seed
         ts = self._env.reset()
         return self._flatten_obs(ts.observation), {}
 
@@ -255,15 +271,20 @@ class RcEvaluationWrapper(gym.Wrapper):
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
-def make_reacher(reward_name: str = "Rb", mode: str = "train") -> gym.Env:
+def make_reacher(reward_name: str = "Rb", mode: str = "train",
+                  seed: Optional[int] = None) -> gym.Env:
     """Build a reacher env with the chosen reward.
 
     mode='train' vs 'eval' only matters for Rc:
       train -> RcTrainingWrapper (timeout-reset-continuation)
       eval  -> RcEvaluationWrapper (1000-step hard cap, -1020 on timeout)
     For Ra and Rb the two modes are identical (fixed length 1000).
+
+    `seed`: optional dm_control task seed (passed at construction). Most callers leave
+    it None — the Gym env.reset(seed=...) path will rebuild the env with the seed on
+    the first reset.
     """
-    base = DMCReacherBase()
+    base = DMCReacherBase(dmc_seed=seed)
     if reward_name in ("Ra", "Rb"):
         return FixedLengthRewardWrapper(base, reward_name)
     if reward_name == "Rc":
