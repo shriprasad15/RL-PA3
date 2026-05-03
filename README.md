@@ -36,15 +36,51 @@ pebble.py              # PEBBLE: reward model ensemble, preference buffer, simul
 
 Each notebook has a `CONFIG` cell at the top with:
 - `SMOKE_TEST = True/False` — if True, runs with 2 seeds and ~20K steps to sanity-check the pipeline.
-- `N_SEEDS` — set to 15 for the full assignment run (2 for smoke).
-- Per-experiment step budgets (tuned for convergence without waste).
+- `N_SEEDS` — 15 for the full assignment run (2 for smoke).
+- Per-experiment step budgets tuned for convergence without waste.
 
-Run order:
-1. Set `SMOKE_TEST = True`, execute the notebook, verify curves look sane (~5 min each).
-2. Set `SMOKE_TEST = False`, `N_SEEDS = 15`, re-run the "Train" cells.
+### Option A: notebook-driven (single-process, one section at a time)
 
-Logs (per-run CSVs with eval returns vs. env steps) are saved to `logs/<notebook>/<config>_seed<k>.csv`.
-Aggregate plots are re-drawn from those CSVs in the "Plots" section.
+```bash
+cd 2.1 && jupyter lab   # then run all cells
+```
+
+Sequential; skips cached runs. Fine for a sanity check, slow for 15-seed runs.
+
+### Option B: parallel CLI (run everything in parallel)
+
+Top-level `run_all.py` dispatches every `(experiment, seed)` combo as an
+independent subprocess. Each worker runs one full training job end-to-end and
+writes the exact same `<section>/logs/<tag>_seed<k>.json` the notebook would.
+
+```bash
+# Smoke test across all four sections (2 seeds, short budgets)
+python run_all.py --smoke --workers 4
+
+# Full assignment run (15 seeds, TA-mandated budgets)
+python run_all.py --full --workers 6
+
+# Only section 2.3 with the full budget
+python run_all.py --full --sections 2.3 --workers 4
+
+# Enumerate jobs without launching (sanity check)
+python run_all.py --full --dry-run
+```
+
+Everything is resumable: any job whose output JSON already exists is skipped.
+Per-job stdout/stderr goes to `run_logs/<section>__<tag>__seed<k>.log`.
+
+After the CLI finishes, open the matching notebook and just run the "Plot"
+cells — they read the same JSONs the CLI wrote. No re-training.
+
+**Workers tuning on the RTX 5090:**
+- `--workers 6` is a safe default (each SAC agent uses <1 GB VRAM).
+- Reacher (MuJoCo) is more CPU-bound; you can push `--workers 8` on a 24-core CPU.
+- If you see CUDA OOM, drop `--workers`.
+
+Full-run catalogue sizes: 212 jobs for 2.1, 75 for 2.2, 45 for 2.3, 240 for 3
+(572 total). On an RTX 5090 most jobs run in 10-30 minutes each; expect
+end-to-end wall-clock of ~24-48 hours at `--workers 6` for everything.
 
 ## Hardware
 
