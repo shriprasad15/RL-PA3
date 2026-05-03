@@ -87,17 +87,19 @@ def build_catalogue(*, smoke: bool, sections: list[str] | None,
         BUDGETS = [50, 200]
     else:
         N_SEEDS = n_seeds_override if n_seeds_override is not None else 15
-        # Budgets tuned for convergence without waste. SAC on Pendulum converges well
-        # under 80K; LunarLander continuous ~250-300K; Reacher-easy 500K per TA;
-        # PEBBLE adds ~20-30% overhead so budgets are set modestly higher than SAC-GT.
+        # Budgets sized with headroom. Pendulum converges well under 100K; LunarLander
+        # continuous usually solves at 200-250K so 300K is safe; hover-switch restored
+        # to 300K/300K because post-flip "un-learning" is the slowest part of that
+        # experiment; PEBBLE-Pendulum restored to 200K because the 5K unsup phase +
+        # reward-model learning leaves less effective budget than vanilla SAC.
         P = {
-            "pend_total":       80_000, "pend_eval":    10_000,   # was 150K
-            "ll_cont_total":   300_000, "ll_disc_total": 250_000, # was 400K/300K
-            "ll_eval":          10_000,
-            "ll_hover_pre":    250_000, "ll_hover_post": 250_000, # was 300K/300K
-            "reach_total":     500_000, "reach_eval":    10_000,  # TA recommended; unchanged
-            "pebble_pend_total":  120_000,                          # was 200K
-            "pebble_reach_total": 500_000,                          # unchanged
+            "pend_total":       100_000, "pend_eval":    10_000,
+            "ll_cont_total":    300_000, "ll_disc_total": 250_000,
+            "ll_eval":           10_000,
+            "ll_hover_pre":     300_000, "ll_hover_post": 300_000,
+            "reach_total":      500_000, "reach_eval":    10_000,
+            "pebble_pend_total":  200_000,
+            "pebble_reach_total": 500_000,
             "pebble_budget_pend":    500,
             "pebble_budget_reach":  1000,
         }
