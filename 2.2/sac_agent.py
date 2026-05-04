@@ -95,6 +95,20 @@ class SACAgent:
 
     # ---------------- action selection ----------------
     @torch.no_grad()
+    def checkpoint(self) -> dict:
+        import copy
+        return {
+            "agent_type": "sac",
+            "actor": copy.deepcopy(self.actor.state_dict()),
+            "critic": copy.deepcopy(self.critic.state_dict()),
+            "critic_target": copy.deepcopy(self.critic_target.state_dict()),
+            "log_alpha": self.log_alpha.detach().cpu().clone(),
+            "obs_dim": self.obs_dim, "act_dim": self.act_dim, "act_limit": self.act_limit,
+            "hidden": tuple(self.cfg.hidden),
+            "total_env_steps": int(self.total_env_steps),
+            "alpha": float(self.alpha.detach().cpu()),
+        }
+
     def act(self, obs: np.ndarray, deterministic: bool = False) -> np.ndarray:
         o = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
         a, _ = self.actor(o, deterministic=deterministic, with_logprob=False)

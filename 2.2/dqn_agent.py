@@ -59,6 +59,17 @@ class DQNAgent:
         return self.cfg.epsilon_start + frac * (self.cfg.epsilon_end - self.cfg.epsilon_start)
 
     @torch.no_grad()
+    def checkpoint(self) -> dict:
+        import copy
+        return {
+            "agent_type": "dqn",
+            "q": copy.deepcopy(self.q.state_dict()),
+            "q_target": copy.deepcopy(self.q_target.state_dict()),
+            "obs_dim": self.obs_dim, "n_actions": self.n_actions,
+            "hidden": tuple(self.cfg.hidden),
+            "total_env_steps": int(self.total_env_steps),
+        }
+
     def act(self, obs: np.ndarray, deterministic: bool = False) -> int:
         if (not deterministic) and np.random.rand() < self.epsilon():
             return int(np.random.randint(self.n_actions))

@@ -82,6 +82,20 @@ class DiscreteSACAgent:
         return self.log_alpha.exp()
 
     @torch.no_grad()
+    def checkpoint(self) -> dict:
+        import copy
+        return {
+            "agent_type": "discrete_sac",
+            "actor": copy.deepcopy(self.actor.state_dict()),
+            "critic": copy.deepcopy(self.critic.state_dict()),
+            "critic_target": copy.deepcopy(self.critic_target.state_dict()),
+            "log_alpha": self.log_alpha.detach().cpu().clone(),
+            "obs_dim": self.obs_dim, "n_actions": self.n_actions,
+            "hidden": tuple(self.cfg.hidden),
+            "total_env_steps": int(self.total_env_steps),
+            "alpha": float(self.alpha.detach().cpu()),
+        }
+
     def act(self, obs: np.ndarray, deterministic: bool = False) -> int:
         o = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
         probs, _ = self.actor(o)
