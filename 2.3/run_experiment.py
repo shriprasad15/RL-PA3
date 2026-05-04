@@ -17,8 +17,9 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from pathlib import Path
 
-from runners import LOG_DIR, run_reacher
+from runners import DEFAULT_OUTPUT_ROOT, LOG_DIR, is_done, run_reacher
 
 
 def main():
@@ -27,19 +28,25 @@ def main():
     parser.add_argument("--seed", required=True, type=int)
     parser.add_argument("--total-steps", required=True, type=int)
     parser.add_argument("--eval-every", required=True, type=int)
-    parser.add_argument("--force", action="store_true", help="rerun even if log exists")
+    parser.add_argument("--output-root", default=DEFAULT_OUTPUT_ROOT)
+    parser.add_argument("--no-rollout", action="store_true", help="skip final_rollout.pkl")
+    parser.add_argument("--force", action="store_true", help="rerun even if artifacts/log exist")
     args = parser.parse_args()
 
     tag = f"reacher_{args.reward}"
-    out_path = os.path.join(LOG_DIR, f"{tag}_seed{args.seed}.json")
+    legacy_out_path = Path(LOG_DIR) / f"{tag}_seed{args.seed}.json"
 
-    if os.path.exists(out_path) and not args.force:
-        print(f"SKIP: {out_path} already exists. Use --force to rerun.")
-        sys.exit(0)
+    if not args.force:
+        if is_done(args.output_root, tag, args.seed):
+            print(f"SKIP: artifacts already complete for {tag} seed={args.seed}")
+            sys.exit(0)
+        if legacy_out_path.exists():
+            print(f"SKIP: {legacy_out_path} already exists. Use --force to rerun.")
+            sys.exit(0)
 
     print(
-        f"RUN reward={args.reward} seed={args.seed} "
-        f"total_steps={args.total_steps} eval_every={args.eval_every}"
+        f"RUN reward={args.reward} seed={args.seed} total_steps={args.total_steps} "
+        f"eval_every={args.eval_every} output_root={args.output_root}"
     )
     run_reacher(
         seed=args.seed,
@@ -47,6 +54,8 @@ def main():
         tag=tag,
         total_steps=args.total_steps,
         eval_every=args.eval_every,
+        output_root=args.output_root,
+        save_rollout=not args.no_rollout,
     )
     print(f"DONE reward={args.reward} seed={args.seed}")
 
