@@ -20,7 +20,7 @@ class DQNConfig:
     batch_size: int = 256
     buffer_size: int = 1_000_000
     start_steps: int = 10_000
-    update_after: int = 10_000
+    update_after: int = 1_000
     update_every: int = 1
     grad_steps_per_update: int = 1
     target_update_every: int = 1_000   # hard update
