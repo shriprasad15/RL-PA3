@@ -32,9 +32,20 @@ def run_one(theta_target: float, seed: int, tag: str, *,
         update_after=500,
     )
     agent = SACAgent(obs_dim, act_dim, act_limit, cfg, device=device or get_device())
+    best_ckpt_path = os.path.join(LOG_DIR, f"{tag}_seed{seed}_best.pt")
+
+    def _save_best(step, ret):
+        torch.save({
+            "actor": agent.actor.state_dict(), "critic": agent.critic.state_dict(),
+            "critic_target": agent.critic_target.state_dict(),
+            "log_alpha": agent.log_alpha.detach().cpu(),
+            "step": step, "best_return": ret,
+            "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": act_limit,
+        }, best_ckpt_path)
+
     log = train_sac(env_fn, agent, total_steps=total_steps, eval_env_fn=env_fn,
                     eval_every=eval_every, eval_episodes=EVAL_EPISODES,
-                    log_stdout=False, seed=seed)
+                    log_stdout=False, seed=seed, best_ckpt_fn=_save_best)
 
     run_config = {
         "env": "Pendulum-v1-target-angle", "theta_target_deg": theta_target,

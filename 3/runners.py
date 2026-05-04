@@ -23,9 +23,20 @@ def run_sac_gt_pendulum(theta: int, seed: int, tag: str, *,
     lim = float(s.action_space.high[0]); s.close()
     cfg = SACConfig(start_steps=500, update_after=500)  # TA rule for Pendulum
     agent = SACAgent(obs_dim, act_dim, lim, cfg, device=device or get_device())
+    best_ckpt_path = os.path.join(LOG_DIR, f"{tag}_seed{seed}_best.pt")
+
+    def _save_best(step, ret):
+        torch.save({
+            "actor": agent.actor.state_dict(), "critic": agent.critic.state_dict(),
+            "critic_target": agent.critic_target.state_dict(),
+            "log_alpha": agent.log_alpha.detach().cpu(),
+            "step": step, "best_return": ret,
+            "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": lim,
+        }, best_ckpt_path)
+
     log = train_sac(env_fn, agent, total_steps=total_steps, eval_env_fn=env_fn,
                     eval_every=eval_every, eval_episodes=EVAL_EPISODES,
-                    log_stdout=False, seed=seed)
+                    log_stdout=False, seed=seed, best_ckpt_fn=_save_best)
     run_config = {
         "env": f"Pendulum theta={theta}", "theta_target_deg": theta,
         "algo": "SAC (ground-truth reward)", "seed": seed,
@@ -54,9 +65,23 @@ def run_pebble_pendulum(theta: int, seed: int, tag: str, *,
     cfg = PebbleConfig(total_feedback=budget, unsup_steps=5_000,
                        start_steps=500, update_after=500)
     agent = PebbleAgent(obs_dim, act_dim, lim, cfg, device=device or get_device())
+    best_ckpt_path = os.path.join(LOG_DIR, f"{tag}_seed{seed}_best.pt")
+
+    def _save_best_pebble_pend(step, ret):
+        torch.save({
+            "actor": agent.actor.state_dict(), "critic": agent.critic.state_dict(),
+            "critic_target": agent.critic_target.state_dict(),
+            "reward_model": agent.reward_model.state_dict(),
+            "log_alpha": agent.log_alpha.detach().cpu(),
+            "step": step, "best_return": ret,
+            "pref_buffer_size": len(agent.pref),
+            "feedback_used": agent.total_feedback_used,
+            "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": lim,
+        }, best_ckpt_path)
+
     log = train_pebble(env_fn, agent, total_steps=total_steps, eval_env_fn=env_fn,
                        eval_every=eval_every, eval_episodes=EVAL_EPISODES,
-                       log_stdout=False, seed=seed)
+                       log_stdout=False, seed=seed, best_ckpt_fn=_save_best_pebble_pend)
     run_config = {
         "env": f"Pendulum theta={theta}", "theta_target_deg": theta,
         "algo": "PEBBLE", "seed": seed, "feedback_budget": budget,
@@ -101,10 +126,24 @@ def run_pebble_reacher(reward_name: str, seed: int, tag: str, *,
                        n_init_queries=200, n_queries_per_batch=64,
                        query_every=10_000)
     agent = PebbleAgent(obs_dim, act_dim, lim, cfg, device=device or get_device())
+    best_ckpt_path = os.path.join(LOG_DIR, f"{tag}_seed{seed}_best.pt")
+
+    def _save_best_pebble_reach(step, ret):
+        torch.save({
+            "actor": agent.actor.state_dict(), "critic": agent.critic.state_dict(),
+            "critic_target": agent.critic_target.state_dict(),
+            "reward_model": agent.reward_model.state_dict(),
+            "log_alpha": agent.log_alpha.detach().cpu(),
+            "step": step, "best_return": ret,
+            "pref_buffer_size": len(agent.pref),
+            "feedback_used": agent.total_feedback_used,
+            "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": lim,
+        }, best_ckpt_path)
+
     log = train_pebble(train_env_fn, agent, total_steps=total_steps,
                        eval_env_fn=eval_env_fn,
                        eval_every=eval_every, eval_episodes=EVAL_EPISODES,
-                       log_stdout=False, seed=seed)
+                       log_stdout=False, seed=seed, best_ckpt_fn=_save_best_pebble_reach)
     run_config = {
         "env": f"DMC reacher-easy ({reward_name})",
         "reward_formulation": reward_name, "algo": "PEBBLE",

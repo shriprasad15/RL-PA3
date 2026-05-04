@@ -308,7 +308,8 @@ def train_pebble(env_fn: Callable, agent: PebbleAgent, *,
                  eval_every: int = 10_000,
                  eval_episodes: int = 20,
                  log_stdout: bool = True,
-                 seed: int = 0):
+                 seed: int = 0,
+                 best_ckpt_fn: Callable = None):
     """Full PEBBLE training loop.
 
     The training env's reward is what we call the "ground-truth reward" — it's what the
@@ -317,6 +318,7 @@ def train_pebble(env_fn: Callable, agent: PebbleAgent, *,
     pre-training when it uses intrinsic motivation).
 
     Eval always uses the ground-truth env reward.
+    best_ckpt_fn(step, return): called whenever a new best eval return is achieved.
     """
     cfg = agent.cfg
     rng = np.random.default_rng(seed)
@@ -324,8 +326,10 @@ def train_pebble(env_fn: Callable, agent: PebbleAgent, *,
     obs, _ = env.reset(seed=seed)
 
     log = EvalLog()
+    best_return = float("-inf")
 
     def _eval_now(step):
+        nonlocal best_return
         out = evaluate_policy(eval_env_fn,
                               act_fn=lambda o: agent.act(o, deterministic=True),
                               n_episodes=eval_episodes)
@@ -333,6 +337,10 @@ def train_pebble(env_fn: Callable, agent: PebbleAgent, *,
         if log_stdout:
             print(f"[step {step:>7}] gt return = {out['return']:.2f}  "
                   f"feedback={agent.total_feedback_used}")
+        if out["return"] > best_return:
+            best_return = out["return"]
+            if best_ckpt_fn is not None:
+                best_ckpt_fn(step, best_return)
 
     # ------------------ phase 1: unsupervised pre-training (intrinsic reward) ------------------
     _eval_now(0)

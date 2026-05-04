@@ -1,4 +1,4 @@
-"""Vanilla DQN for PA3 2.2 discrete LunarLander."""
+"""Vanilla DQN (Mnih et al. 2015): target network + epsilon-greedy + replay."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from sac_core import ReplayBuffer, mlp, get_device, EvalLog, evaluate_policy
+from sac_core import ReplayBuffer, mlp, soft_update, get_device
 
 
 @dataclass
@@ -20,17 +20,17 @@ class DQNConfig:
     batch_size: int = 256
     buffer_size: int = 1_000_000
     start_steps: int = 10_000
-    update_after: int = 10_000
+    update_after: int = 1_000
     update_every: int = 1
     grad_steps_per_update: int = 1
-    target_update_every: int = 1_000
+    target_update_every: int = 1_000   # hard update
     epsilon_start: float = 1.0
     epsilon_end: float = 0.05
     epsilon_decay_steps: int = 100_000
 
 
 class QNetwork(nn.Module):
-    def __init__(self, obs_dim: int, n_actions: int, hidden=(256, 256)):
+    def __init__(self, obs_dim, n_actions, hidden=(256, 256)):
         super().__init__()
         self.net = mlp([obs_dim, *hidden, n_actions])
 
@@ -39,11 +39,9 @@ class QNetwork(nn.Module):
 
 
 class DQNAgent:
-    def __init__(self, obs_dim: int, n_actions: int, cfg: DQNConfig,
-                 device: torch.device | None = None):
+    def __init__(self, obs_dim: int, n_actions: int, cfg: DQNConfig, device=None):
         self.cfg = cfg
         self.device = device if device is not None else get_device()
-        self.obs_dim = obs_dim
         self.n_actions = n_actions
 
         self.q = QNetwork(obs_dim, n_actions, cfg.hidden).to(self.device)
@@ -72,39 +70,18 @@ class DQNAgent:
 
     def update(self) -> dict:
         batch = self.buffer.sample(self.cfg.batch_size, self.device)
-        o = batch["obs"].float()
-        a = batch["acts"].long()
-        r = batch["rews"].float()
-        o2 = batch["next_obs"].float()
-        d = batch["dones"].float()
-
+        o, a, r, o2, d = batch["obs"], batch["acts"], batch["rews"], batch["next_obs"], batch["dones"]
         with torch.no_grad():
             q_next = self.q_target(o2).max(dim=-1).values
-            y = r + self.cfg.gamma * (1.0 - d) * q_next
-
+            y = r + self.cfg.gamma * (1 - d) * q_next
         q_all = self.q(o)
         q = q_all.gather(1, a.view(-1, 1)).squeeze(-1)
         loss = F.mse_loss(q, y)
-        self.opt.zero_grad()
-        loss.backward()
-        self.opt.step()
+        self.opt.zero_grad(); loss.backward(); self.opt.step()
 
         if self.total_env_steps % self.cfg.target_update_every == 0:
             self.q_target.load_state_dict(self.q.state_dict())
-
-        return {"q_loss": float(loss.item()), "epsilon": float(self.epsilon())}
-
-    def checkpoint(self) -> dict:
-        return {
-            "agent_type": "dqn",
-            "q": self.q.state_dict(),
-            "q_target": self.q_target.state_dict(),
-            "optimizer": self.opt.state_dict(),
-            "config": self.cfg.__dict__,
-            "obs_dim": self.obs_dim,
-            "n_actions": self.n_actions,
-            "total_env_steps": self.total_env_steps,
-        }
+        return {"loss": float(loss.item()), "epsilon": float(self.epsilon())}
 
 
 def train_dqn(env_fn: Callable, agent: DQNAgent, *,
@@ -114,67 +91,43 @@ def train_dqn(env_fn: Callable, agent: DQNAgent, *,
               eval_episodes: int = 20,
               log_stdout: bool = True,
               seed: int = 0,
-              on_eval: Callable | None = None,
-              train_log_every: int = 1000):
+              best_ckpt_fn: Callable = None):
+    from sac_core import EvalLog, evaluate_policy
     rng = np.random.default_rng(seed)
     env = env_fn()
     obs, _ = env.reset(seed=seed)
+    log = EvalLog()
+    best_return = float("-inf")
 
-    eval_log = EvalLog()
-    train_rows: list[dict] = []
-    ep_ret, ep_len = 0.0, 0
-
-    def _eval_now(step: int):
-        out = evaluate_policy(
-            eval_env_fn,
-            act_fn=lambda o: agent.act(o, deterministic=True),
-            n_episodes=eval_episodes,
-        )
-        eval_log.append(step, out["return"], std_ret=out.get("return_std"))
-        if on_eval is not None:
-            on_eval(step, out, agent)
+    def _eval_now(step):
+        nonlocal best_return
+        out = evaluate_policy(eval_env_fn,
+                              act_fn=lambda o: agent.act(o, deterministic=True),
+                              n_episodes=eval_episodes)
+        log.append(step, out["return"])
         if log_stdout:
-            print(f"[step {step:>7}] eval_return={out['return']:.2f}")
+            print(f"[step {step:>7}] eval return = {out['return']:.2f}")
+        if out["return"] > best_return:
+            best_return = out["return"]
+            if best_ckpt_fn is not None:
+                best_ckpt_fn(step, best_return)
 
     _eval_now(0)
-    last_update_info = {}
-
     for t in range(1, total_steps + 1):
         agent.total_env_steps = t
-        a = agent.random_action(rng) if t <= agent.cfg.start_steps else agent.act(obs, deterministic=False)
+        if t <= agent.cfg.start_steps:
+            a = agent.random_action(rng)
+        else:
+            a = agent.act(obs, deterministic=False)
         next_obs, r, term, trunc, _ = env.step(a)
         agent.buffer.add(obs, a, r, next_obs, float(term))
         obs = next_obs
-        ep_ret += float(r)
-        ep_len += 1
-
         if term or trunc:
-            train_rows.append({
-                "global_step": t,
-                "event": "episode_end",
-                "episode_return": ep_ret,
-                "episode_length": ep_len,
-                "epsilon": float(agent.epsilon()),
-            })
             obs, _ = env.reset()
-            ep_ret, ep_len = 0.0, 0
-
         if t >= agent.cfg.update_after and t % agent.cfg.update_every == 0:
             for _ in range(agent.cfg.grad_steps_per_update):
-                last_update_info = agent.update()
-
-        if t % train_log_every == 0:
-            row = {
-                "global_step": t,
-                "event": "train_step",
-                "replay_size": agent.buffer.size,
-                "epsilon": float(agent.epsilon()),
-            }
-            row.update(last_update_info)
-            train_rows.append(row)
-
+                agent.update()
         if t % eval_every == 0:
             _eval_now(t)
-
     env.close()
-    return eval_log, train_rows
+    return log

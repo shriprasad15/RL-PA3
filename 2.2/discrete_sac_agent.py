@@ -1,6 +1,12 @@
-"""Discrete Soft Actor-Critic for PA3 2.2 LunarLander.
+"""Discrete Soft Actor-Critic (Christodoulou, 2019: https://arxiv.org/abs/1910.07207).
 
-Categorical actor + twin Q networks over discrete actions.
+Adapts SAC to discrete action spaces by:
+- replacing the squashed-gaussian policy with a categorical policy pi(a|s),
+- replacing the sampled-action Q target with an *expected-value* Q target:
+      E_{a' ~ pi}[min_{i=1,2} Q_i_target(s', a') - alpha * log pi(a'|s')]
+- likewise an expected-value actor loss:
+      J_pi = E_s [ sum_a pi(a|s) * (alpha * log pi(a|s) - min Q(s, a)) ]
+- target entropy defaults to 0.98 * (-log(1/|A|)) (paper Sec 4.2).
 """
 from __future__ import annotations
 
@@ -17,8 +23,6 @@ from sac_core import (
     TwinDiscreteQ,
     soft_update,
     get_device,
-    EvalLog,
-    evaluate_policy,
 )
 
 
@@ -33,21 +37,21 @@ class DiscreteSACConfig:
     batch_size: int = 256
     buffer_size: int = 1_000_000
     start_steps: int = 10_000
-    update_after: int = 10_000
+    update_after: int = 1_000
     update_every: int = 1
     grad_steps_per_update: int = 1
     autotune_alpha: bool = True
     init_alpha: float = 0.2
-    target_entropy_ratio: float = 0.98
+    target_entropy_ratio: float = 0.98  # of the max entropy log(|A|)
 
 
 class DiscreteSACAgent:
     def __init__(self, obs_dim: int, n_actions: int, config: DiscreteSACConfig,
-                 device: torch.device | None = None):
+                 device: torch.device = None):
         self.cfg = config
         self.device = device if device is not None else get_device()
-        self.obs_dim = obs_dim
         self.n_actions = n_actions
+        self.obs_dim = obs_dim
 
         self.actor = CategoricalActor(obs_dim, n_actions, config.hidden).to(self.device)
         self.critic = TwinDiscreteQ(obs_dim, n_actions, config.hidden).to(self.device)
@@ -60,13 +64,15 @@ class DiscreteSACAgent:
         self.critic_opt = torch.optim.Adam(self.critic.parameters(), lr=config.critic_lr)
 
         if config.autotune_alpha:
+            # target entropy = ratio * log(|A|), negative because H = -sum p log p is positive
             self.target_entropy = float(config.target_entropy_ratio) * np.log(n_actions)
-            self.log_alpha = torch.tensor(np.log(config.init_alpha), device=self.device, requires_grad=True)
+            self.log_alpha = torch.tensor(np.log(config.init_alpha), device=self.device,
+                                          requires_grad=True)
             self.alpha_opt = torch.optim.Adam([self.log_alpha], lr=config.alpha_lr)
         else:
-            self.target_entropy = None
             self.log_alpha = torch.tensor(np.log(config.init_alpha), device=self.device)
             self.alpha_opt = None
+            self.target_entropy = None
 
         self.buffer = ReplayBuffer(config.buffer_size, obs_dim, act_dim=1, discrete=True)
         self.total_env_steps = 0
@@ -89,27 +95,23 @@ class DiscreteSACAgent:
 
     def update(self) -> dict:
         batch = self.buffer.sample(self.cfg.batch_size, self.device)
-        o = batch["obs"].float()
-        a = batch["acts"].long()
-        r = batch["rews"].float()
-        o2 = batch["next_obs"].float()
-        d = batch["dones"].float()
+        o, a, r, o2, d = batch["obs"], batch["acts"], batch["rews"], batch["next_obs"], batch["dones"]
 
+        # ----- critic update (expected-value target) -----
         with torch.no_grad():
-            probs_next, logp_next = self.actor(o2)
-            q1_t, q2_t = self.critic_target(o2)
+            probs_next, logp_next = self.actor(o2)                 # (B, A)
+            q1_t, q2_t = self.critic_target(o2)                    # (B, A)
             q_min = torch.min(q1_t, q2_t) - self.alpha.detach() * logp_next
-            v_next = (probs_next * q_min).sum(dim=-1)
+            v_next = (probs_next * q_min).sum(dim=-1)              # (B,)
             y = r + self.cfg.gamma * (1.0 - d) * v_next
 
-        q1_all, q2_all = self.critic(o)
+        q1_all, q2_all = self.critic(o)                            # (B, A)
         q1 = q1_all.gather(1, a.view(-1, 1)).squeeze(-1)
         q2 = q2_all.gather(1, a.view(-1, 1)).squeeze(-1)
         critic_loss = F.mse_loss(q1, y) + F.mse_loss(q2, y)
-        self.critic_opt.zero_grad()
-        critic_loss.backward()
-        self.critic_opt.step()
+        self.critic_opt.zero_grad(); critic_loss.backward(); self.critic_opt.step()
 
+        # ----- actor update (expected over actions) -----
         for p in self.critic.parameters():
             p.requires_grad_(False)
         probs, logp = self.actor(o)
@@ -117,48 +119,29 @@ class DiscreteSACAgent:
             q1_now, q2_now = self.critic(o)
             q_now = torch.min(q1_now, q2_now)
         actor_loss = (probs * (self.alpha.detach() * logp - q_now)).sum(dim=-1).mean()
-        self.actor_opt.zero_grad()
-        actor_loss.backward()
-        self.actor_opt.step()
+        self.actor_opt.zero_grad(); actor_loss.backward(); self.actor_opt.step()
         for p in self.critic.parameters():
             p.requires_grad_(True)
 
         info = {
-            "critic_loss": float(critic_loss.item()),
-            "actor_loss": float(actor_loss.item()),
+            "critic_loss": critic_loss.item(),
+            "actor_loss": actor_loss.item(),
             "alpha": float(self.alpha.detach().cpu()),
         }
-
         if self.cfg.autotune_alpha:
+            # entropy = -sum p log p (per state); we push it towards target_entropy
             with torch.no_grad():
                 entropy = -(probs * logp).sum(dim=-1)
             alpha_loss = -(self.log_alpha * (self.target_entropy - entropy).detach()).mean()
-            self.alpha_opt.zero_grad()
-            alpha_loss.backward()
-            self.alpha_opt.step()
-            info["alpha_loss"] = float(alpha_loss.item())
+            self.alpha_opt.zero_grad(); alpha_loss.backward(); self.alpha_opt.step()
+            info["alpha_loss"] = alpha_loss.item()
             info["entropy"] = float(entropy.mean().cpu())
 
         soft_update(self.critic_target, self.critic, self.cfg.tau)
         return info
 
-    def checkpoint(self) -> dict:
-        return {
-            "agent_type": "discrete_sac",
-            "actor": self.actor.state_dict(),
-            "critic": self.critic.state_dict(),
-            "critic_target": self.critic_target.state_dict(),
-            "actor_opt": self.actor_opt.state_dict(),
-            "critic_opt": self.critic_opt.state_dict(),
-            "log_alpha": self.log_alpha.detach().cpu(),
-            "alpha_opt": self.alpha_opt.state_dict() if self.alpha_opt is not None else None,
-            "config": self.cfg.__dict__,
-            "obs_dim": self.obs_dim,
-            "n_actions": self.n_actions,
-            "total_env_steps": self.total_env_steps,
-        }
 
-
+# -------------- generic train loop (same structure as continuous SAC) --------------
 def train_discrete_sac(env_fn: Callable, agent: DiscreteSACAgent, *,
                        total_steps: int,
                        eval_env_fn: Callable,
@@ -166,67 +149,44 @@ def train_discrete_sac(env_fn: Callable, agent: DiscreteSACAgent, *,
                        eval_episodes: int = 20,
                        log_stdout: bool = True,
                        seed: int = 0,
-                       on_eval: Callable | None = None,
-                       train_log_every: int = 1000):
+                       best_ckpt_fn: Callable = None):
+    from sac_core import EvalLog, evaluate_policy
     rng = np.random.default_rng(seed)
     env = env_fn()
     obs, _ = env.reset(seed=seed)
 
-    eval_log = EvalLog()
-    train_rows: list[dict] = []
-    ep_ret, ep_len = 0.0, 0
+    log = EvalLog()
+    best_return = float("-inf")
 
-    def _eval_now(step: int):
-        out = evaluate_policy(
-            eval_env_fn,
-            act_fn=lambda o: agent.act(o, deterministic=True),
-            n_episodes=eval_episodes,
-        )
-        eval_log.append(step, out["return"], std_ret=out.get("return_std"))
-        if on_eval is not None:
-            on_eval(step, out, agent)
+    def _eval_now(step):
+        nonlocal best_return
+        out = evaluate_policy(eval_env_fn,
+                              act_fn=lambda o: agent.act(o, deterministic=True),
+                              n_episodes=eval_episodes)
+        log.append(step, out["return"])
         if log_stdout:
-            print(f"[step {step:>7}] eval_return={out['return']:.2f}")
+            print(f"[step {step:>7}] eval return = {out['return']:.2f}")
+        if out["return"] > best_return:
+            best_return = out["return"]
+            if best_ckpt_fn is not None:
+                best_ckpt_fn(step, best_return)
 
     _eval_now(0)
-    last_update_info = {}
-
     for t in range(1, total_steps + 1):
-        a = agent.random_action(rng) if t <= agent.cfg.start_steps else agent.act(obs, deterministic=False)
+        if t <= agent.cfg.start_steps:
+            a = agent.random_action(rng)
+        else:
+            a = agent.act(obs, deterministic=False)
         next_obs, r, term, trunc, _ = env.step(a)
         agent.buffer.add(obs, a, r, next_obs, float(term))
         obs = next_obs
-        ep_ret += float(r)
-        ep_len += 1
         agent.total_env_steps = t
-
         if term or trunc:
-            train_rows.append({
-                "global_step": t,
-                "event": "episode_end",
-                "episode_return": ep_ret,
-                "episode_length": ep_len,
-                "alpha": float(agent.alpha.detach().cpu()),
-            })
             obs, _ = env.reset()
-            ep_ret, ep_len = 0.0, 0
-
         if t >= agent.cfg.update_after and t % agent.cfg.update_every == 0:
             for _ in range(agent.cfg.grad_steps_per_update):
-                last_update_info = agent.update()
-
-        if t % train_log_every == 0:
-            row = {
-                "global_step": t,
-                "event": "train_step",
-                "replay_size": agent.buffer.size,
-                "alpha": float(agent.alpha.detach().cpu()),
-            }
-            row.update(last_update_info)
-            train_rows.append(row)
-
+                agent.update()
         if t % eval_every == 0:
             _eval_now(t)
-
     env.close()
-    return eval_log, train_rows
+    return log

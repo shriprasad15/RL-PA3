@@ -131,6 +131,17 @@ def run_reacher(
 
     cfg = SACConfig(start_steps=10_000, update_after=10_000)
     agent = SACAgent(obs_dim, act_dim, act_limit, cfg, device=device or get_device())
+    best_ckpt_path = os.path.join(LOG_DIR, f"{tag}_seed{seed}_best.pt")
+
+    def _save_best(step, ret):
+        torch.save({
+            "actor": agent.actor.state_dict(), "critic": agent.critic.state_dict(),
+            "critic_target": agent.critic_target.state_dict(),
+            "log_alpha": agent.log_alpha.detach().cpu(),
+            "step": step, "best_return": ret,
+            "obs_dim": obs_dim, "act_dim": act_dim, "act_limit": act_limit,
+            "reward_formulation": reward_name, "seed": seed,
+        }, best_ckpt_path)
 
     eval_log, train_log, best_ckpt, final_ckpt = train_sac(
         train_env_fn,
@@ -142,6 +153,7 @@ def run_reacher(
         primary_eval_key=primary_eval_key,
         log_stdout=False,
         seed=seed,
+        best_ckpt_fn=_save_best,
     )
 
     rollout = None

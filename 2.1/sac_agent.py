@@ -162,10 +162,12 @@ def train_sac(env_fn: Callable, agent: SACAgent, *,
               eval_episodes: int = 20,
               eval_extra_reward_fns: dict = None,
               log_stdout: bool = True,
-              seed: int = 0):
+              seed: int = 0,
+              best_ckpt_fn: Callable = None):
     """Standard SAC training loop.
 
     Returns an EvalLog with periodic (step, mean_return) records.
+    best_ckpt_fn(step, return): called whenever a new best eval return is achieved.
     """
     from sac_core import EvalLog
     rng = np.random.default_rng(seed)
@@ -173,15 +175,21 @@ def train_sac(env_fn: Callable, agent: SACAgent, *,
     obs, _ = env.reset(seed=seed)
 
     log = EvalLog()
+    best_return = float("-inf")
 
     # initial eval at step 0
     def _eval_now(step):
+        nonlocal best_return
         eval_out = _evaluate(agent, eval_env_fn, eval_episodes, eval_extra_reward_fns)
         extras = {k: v for k, v in eval_out.items() if k != "return"}
         log.append(step, eval_out["return"], extras)
         if log_stdout:
             extras_s = " ".join(f"{k}={v:.2f}" for k, v in extras.items())
             print(f"[step {step:>7}] eval return = {eval_out['return']:.2f}  {extras_s}")
+        if eval_out["return"] > best_return:
+            best_return = eval_out["return"]
+            if best_ckpt_fn is not None:
+                best_ckpt_fn(step, best_return)
 
     _eval_now(0)
 
