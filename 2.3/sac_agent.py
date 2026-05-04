@@ -173,11 +173,13 @@ def train_sac(env_fn: Callable, agent: SACAgent, *,
     rng = np.random.default_rng(seed)
     env = env_fn()
     obs, _ = env.reset(seed=seed)
-    log = EvalLog()
+    eval_log = EvalLog()
+    train_log = TrainLog()
     best_return = float("-inf")
+    best_ckpt: dict = {}
 
     def _eval_now(step: int):
-        nonlocal best_return
+        nonlocal best_return, best_ckpt
         if eval_env_fns is not None:
             assert primary_eval_key in eval_env_fns, "primary_eval_key must be one of eval_env_fns"
             evals = {}
@@ -188,13 +190,14 @@ def train_sac(env_fn: Callable, agent: SACAgent, *,
                     n_episodes=eval_episodes,
                 )
                 evals[name] = out["return"]
-            primary_return = evals[primary_eval_key]
-            log.append(step, primary_return, evals)
+            primary_ret = evals[primary_eval_key]
+            eval_log.append_eval(step, primary_ret, **evals)
             if log_stdout:
                 eval_s = " ".join(f"{k}={v:.2f}" for k, v in evals.items())
                 print(f"[step {step:>7}] {eval_s}")
-            if primary_return > best_return:
-                best_return = primary_return
+            if primary_ret > best_return:
+                best_return = primary_ret
+                best_ckpt = agent.checkpoint()
                 if best_ckpt_fn is not None:
                     best_ckpt_fn(step, best_return)
             return
@@ -207,12 +210,13 @@ def train_sac(env_fn: Callable, agent: SACAgent, *,
             extra_reward_fns=eval_extra_reward_fns,
         )
         extras = {k: v for k, v in out.items() if k != "return"}
-        log.append(step, out["return"], extras)
+        eval_log.append_eval(step, out["return"], **extras)
         if log_stdout:
             extras_s = " ".join(f"{k}={v:.2f}" for k, v in extras.items())
             print(f"[step {step:>7}] eval_return={out['return']:.2f} {extras_s}")
         if out["return"] > best_return:
             best_return = out["return"]
+            best_ckpt = agent.checkpoint()
             if best_ckpt_fn is not None:
                 best_ckpt_fn(step, best_return)
 
@@ -224,8 +228,7 @@ def train_sac(env_fn: Callable, agent: SACAgent, *,
         else:
             action = agent.act(obs, deterministic=False)
 
-        next_obs, reward, terminated, truncated, _info = env.step(action)
-        # Bootstrap mask should use true termination, not time truncation.
+        next_obs, reward, terminated, truncated, info = env.step(action)
         agent.buffer.add(obs, action, reward, next_obs, float(terminated))
         obs = next_obs
         agent.total_env_steps = t
@@ -235,10 +238,15 @@ def train_sac(env_fn: Callable, agent: SACAgent, *,
 
         if t >= agent.cfg.update_after and t % agent.cfg.update_every == 0:
             for _ in range(agent.cfg.grad_steps_per_update):
-                agent.update()
+                update_info = agent.update()
+                if t % 1000 == 0:
+                    train_log.append(step=t, **update_info)
 
         if t % eval_every == 0:
             _eval_now(t)
 
     env.close()
-    return log
+    final_ckpt = agent.checkpoint()
+    if not best_ckpt:
+        best_ckpt = final_ckpt
+    return eval_log, train_log, best_ckpt, final_ckpt
