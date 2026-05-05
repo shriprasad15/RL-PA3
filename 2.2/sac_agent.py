@@ -112,7 +112,7 @@ class SACAgent:
     def act(self, obs: np.ndarray, deterministic: bool = False) -> np.ndarray:
         o = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
         a, _ = self.actor(o, deterministic=deterministic, with_logprob=False)
-        return a.cpu().numpy()[0]
+        return a.detach().cpu().numpy()[0]
 
     def random_action(self, rng: np.random.Generator) -> np.ndarray:
         return rng.uniform(-self.act_limit, self.act_limit, size=self.act_dim).astype(np.float32)
@@ -189,13 +189,14 @@ def train_sac(env_fn: Callable, agent: SACAgent, *,
     obs, _ = env.reset(seed=seed)
 
     log = EvalLog()
+    train_rows: list[dict] = []
     best_return = float("-inf")
 
     # initial eval at step 0
     def _eval_now(step):
         nonlocal best_return
         eval_out = _evaluate(agent, eval_env_fn, eval_episodes, eval_extra_reward_fns)
-        extras = {k: v for k, v in eval_out.items() if k != "return"}
+        extras = {k: v for k, v in eval_out.items() if k not in ("return", "return_std", "episode_returns")}
         log.append(step, eval_out["return"], extras)
         if log_stdout:
             extras_s = " ".join(f"{k}={v:.2f}" for k, v in extras.items())
@@ -223,13 +224,15 @@ def train_sac(env_fn: Callable, agent: SACAgent, *,
 
         if t >= agent.cfg.update_after and t % agent.cfg.update_every == 0:
             for _ in range(agent.cfg.grad_steps_per_update):
-                agent.update()
+                update_info = agent.update()
+                if t % 1000 == 0:
+                    train_rows.append({"global_step": t, **update_info})
 
         if t % eval_every == 0:
             _eval_now(t)
 
     env.close()
-    return log
+    return log, train_rows
 
 
 def _evaluate(agent, eval_env_fn, n_episodes, extra_reward_fns):

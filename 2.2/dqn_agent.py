@@ -42,6 +42,7 @@ class DQNAgent:
     def __init__(self, obs_dim: int, n_actions: int, cfg: DQNConfig, device=None):
         self.cfg = cfg
         self.device = device if device is not None else get_device()
+        self.obs_dim = obs_dim
         self.n_actions = n_actions
 
         self.q = QNetwork(obs_dim, n_actions, cfg.hidden).to(self.device)
@@ -108,6 +109,7 @@ def train_dqn(env_fn: Callable, agent: DQNAgent, *,
     env = env_fn()
     obs, _ = env.reset(seed=seed)
     log = EvalLog()
+    train_rows: list[dict] = []
     best_return = float("-inf")
 
     def _eval_now(step):
@@ -137,8 +139,10 @@ def train_dqn(env_fn: Callable, agent: DQNAgent, *,
             obs, _ = env.reset()
         if t >= agent.cfg.update_after and t % agent.cfg.update_every == 0:
             for _ in range(agent.cfg.grad_steps_per_update):
-                agent.update()
+                update_info = agent.update()
+                if t % 1000 == 0:
+                    train_rows.append({"global_step": t, **update_info})
         if t % eval_every == 0:
             _eval_now(t)
     env.close()
-    return log
+    return log, train_rows

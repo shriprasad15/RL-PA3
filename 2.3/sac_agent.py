@@ -26,6 +26,7 @@ from sac_core import (
     get_device,
     evaluate_policy,
     EvalLog,
+    TrainLog,
 )
 
 
@@ -96,6 +97,21 @@ class SACAgent:
 
     def random_action(self, rng: np.random.Generator) -> np.ndarray:
         return rng.uniform(-self.act_limit, self.act_limit, size=self.act_dim).astype(np.float32)
+
+    @torch.no_grad()
+    def checkpoint(self) -> dict:
+        import copy
+        return {
+            "agent_type": "sac",
+            "actor": copy.deepcopy(self.actor.state_dict()),
+            "critic": copy.deepcopy(self.critic.state_dict()),
+            "critic_target": copy.deepcopy(self.critic_target.state_dict()),
+            "log_alpha": self.log_alpha.detach().cpu().clone(),
+            "obs_dim": self.obs_dim, "act_dim": self.act_dim, "act_limit": self.act_limit,
+            "hidden": tuple(self.cfg.hidden),
+            "total_env_steps": int(self.total_env_steps),
+            "alpha": float(self.alpha.detach().cpu()),
+        }
 
     def update(self) -> dict:
         batch = self.buffer.sample(self.cfg.batch_size, self.device)

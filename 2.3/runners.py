@@ -134,6 +134,7 @@ def run_reacher(
     best_ckpt_path = os.path.join(LOG_DIR, f"{tag}_seed{seed}_best.pt")
 
     def _save_best(step, ret):
+        ensure_dir(LOG_DIR)
         torch.save({
             "actor": agent.actor.state_dict(), "critic": agent.critic.state_dict(),
             "critic_target": agent.critic_target.state_dict(),

@@ -104,8 +104,19 @@ def _make_best_saver(run_dir: Path):
         score = float(eval_out["return"])
         if score > state["best"]:
             state["best"] = score
+            run_dir.mkdir(parents=True, exist_ok=True)
             torch.save(agent.checkpoint(), run_dir / "best_model.pt")
             save_json({"best_step": step, "best_eval_return": score}, str(run_dir / "best.json"))
+
+    return _callback
+
+
+def _make_ckpt_saver(run_dir: Path, agent):
+    """best_ckpt_fn-compatible callback (step, best_return) that closes over agent."""
+    saver = _make_best_saver(run_dir)
+
+    def _callback(step: int, best_return: float):
+        saver(step, {"return": best_return}, agent)
 
     return _callback
 
@@ -175,7 +186,7 @@ def run_continuous(seed: int, tag: str = "cont_auto", *, total_steps: int,
         eval_episodes=EVAL_EPISODES,
         log_stdout=True,
         seed=seed,
-        on_eval=_make_best_saver(run_dir),
+        best_ckpt_fn=_make_ckpt_saver(run_dir, agent),
     )
 
     _save_common_artifacts(
@@ -392,7 +403,7 @@ def run_disc_sac(seed: int, tag: str = "disc_sac", *, total_steps: int,
         eval_episodes=EVAL_EPISODES,
         log_stdout=True,
         seed=seed,
-        on_eval=_make_best_saver(run_dir),
+        best_ckpt_fn=_make_ckpt_saver(run_dir, agent),
     )
 
     _save_common_artifacts(
@@ -457,7 +468,7 @@ def run_dqn(seed: int, tag: str = "dqn", *, total_steps: int,
         eval_episodes=EVAL_EPISODES,
         log_stdout=True,
         seed=seed,
-        on_eval=_make_best_saver(run_dir),
+        best_ckpt_fn=_make_ckpt_saver(run_dir, agent),
     )
 
     _save_common_artifacts(

@@ -170,6 +170,7 @@ def train_discrete_sac(env_fn: Callable, agent: DiscreteSACAgent, *,
     obs, _ = env.reset(seed=seed)
 
     log = EvalLog()
+    train_rows: list[dict] = []
     best_return = float("-inf")
 
     def _eval_now(step):
@@ -199,8 +200,10 @@ def train_discrete_sac(env_fn: Callable, agent: DiscreteSACAgent, *,
             obs, _ = env.reset()
         if t >= agent.cfg.update_after and t % agent.cfg.update_every == 0:
             for _ in range(agent.cfg.grad_steps_per_update):
-                agent.update()
+                update_info = agent.update()
+                if t % 1000 == 0:
+                    train_rows.append({"global_step": t, **update_info})
         if t % eval_every == 0:
             _eval_now(t)
     env.close()
-    return log
+    return log, train_rows
