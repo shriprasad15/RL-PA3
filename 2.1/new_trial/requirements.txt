@@ -1,0 +1,11 @@
+gymnasium[classic-control]>=0.29
+numpy
+pandas
+matplotlib
+torch
+PyYAML
+tqdm
+imageio
+pillow
+ipykernel
+jupyter
