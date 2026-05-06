@@ -24,3 +24,17 @@ run_logs/
 # Keep the PDF spec and the TA checklist docx tracked
 !PA3_RL.pdf
 !PA3_SAC_TA_Instructions_Checklist.docx
+
+# Keep experiment results (JSON logs, CSVs, videos) but not model weights
+!2.2/logs/
+!2.2/logs/**
+!2.3/logs/
+!2.3/logs/**
+2.2/logs/*.pt
+2.3/logs/*.pt
+!2.2/runs/
+!2.2/runs/**
+!2.3/runs/
+!2.3/runs/**
+!2.3/videos/
+!2.3/videos/**

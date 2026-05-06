@@ -1,0 +1,27 @@
+seed,tag,agent,env,global_step,eval_return_mean,eval_return_std
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,0,-768.817601094365,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,10000,-757.5810053491133,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,20000,-58.10309712514159,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,30000,-209.7901808476543,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,40000,-234.2945409639048,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,50000,-257.7554489461133,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,60000,-310.8717048692951,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,70000,-348.43050904791073,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,80000,-442.2742067625397,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,90000,-460.96012213584993,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,100000,-683.445258886661,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,110000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,120000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,130000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,140000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,150000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,160000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,170000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,180000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,190000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,200000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,210000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,220000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,230000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,240000,-758.1957294349206,nan
+4,disc_sac,DiscreteSAC,LunarLander-v3 continuous=False,250000,-758.1957294349206,nan

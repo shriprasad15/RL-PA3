@@ -1,0 +1,27 @@
+seed,tag,agent,env,global_step,eval_return_mean,eval_return_std
+2,dqn,DQN,LunarLander-v3 continuous=False,0,-550.7676679721377,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,10000,-536.791056482999,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,20000,-222.57741748815087,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,30000,-367.73232849664925,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,40000,-251.74777560046337,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,50000,-201.65371474503252,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,60000,-120.88305706031012,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,70000,44.843780434524845,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,80000,142.3185668525421,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,90000,134.19674452675545,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,100000,1.001890593932708,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,110000,190.21194748894882,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,120000,211.9586967682149,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,130000,204.76914996854538,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,140000,205.12834119816048,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,150000,212.82897070597022,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,160000,191.75310485543042,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,170000,190.97755380704342,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,180000,191.48899534851944,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,190000,199.1742056111603,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,200000,192.72296802523442,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,210000,218.85130433886303,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,220000,204.67472624956122,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,230000,111.33829182709121,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,240000,224.2965682629489,nan
+2,dqn,DQN,LunarLander-v3 continuous=False,250000,209.775157840877,nan
