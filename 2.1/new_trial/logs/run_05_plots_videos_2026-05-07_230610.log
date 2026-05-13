@@ -1,0 +1,83 @@
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+Wrote 12 plots to outputs/pendulum_final_300k_clean/plots
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_eval_return_mean.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_eval_return_mean.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_mean_abs_angle_error_deg.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_mean_abs_angle_error_deg.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_target_occupancy.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_target_occupancy.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_mean_abs_angular_velocity.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_mean_abs_angular_velocity.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_mean_squared_torque.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_mean_squared_torque.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_alpha.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_alpha.png
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+Wrote 12 plots to outputs/pendulum_final_300k_clean/plots
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_eval_return_mean_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_eval_return_mean_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_mean_abs_angle_error_deg_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_mean_abs_angle_error_deg_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_target_occupancy_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_target_occupancy_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_mean_abs_angular_velocity_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_mean_abs_angular_velocity_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_mean_squared_torque_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_mean_squared_torque_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_alpha_smooth3.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_alpha_smooth3.png
+Wrote 8 videos to outputs/pendulum_final_300k_clean/videos
+  outputs/pendulum_final_300k_clean/videos/auto_target_p000.gif
+  outputs/pendulum_final_300k_clean/videos/auto_target_m010.gif
+  outputs/pendulum_final_300k_clean/videos/auto_target_p030.gif
+  outputs/pendulum_final_300k_clean/videos/auto_target_m060.gif
+  outputs/pendulum_final_300k_clean/videos/auto_target_p090.gif
+  outputs/pendulum_final_300k_clean/videos/auto_target_m090.gif
+  outputs/pendulum_final_300k_clean/videos/auto_target_p120.gif
+  outputs/pendulum_final_300k_clean/videos/auto_target_m150.gif

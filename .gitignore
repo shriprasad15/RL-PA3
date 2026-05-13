@@ -38,3 +38,12 @@ run_logs/
 !2.3/runs/**
 !2.3/videos/
 !2.3/videos/**
+
+# 2.1 results — keep CSVs, JSONs, plots, GIFs, logs; exclude model weights/rollouts
+!2.1/new_trial/outputs/
+!2.1/new_trial/outputs/**
+2.1/new_trial/outputs/**/*.pt
+2.1/new_trial/outputs/**/*.pkl
+!2.1/new_trial/logs/
+!2.1/new_trial/logs/**
+!2.1/new_trial/select_manual_alphas.py

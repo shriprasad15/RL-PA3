@@ -1,0 +1,17 @@
+{
+  "best_eval_return": null,
+  "condition": "auto_target_p000_scale_1",
+  "current_step": 300000,
+  "elapsed_seconds": 1.0251998901367188e-05,
+  "last_eval_return": null,
+  "manual_alpha": null,
+  "mode": "auto",
+  "phase": "skipped_done",
+  "pid": 135201,
+  "progress_fraction": 1.0,
+  "reward_scale": 1.0,
+  "seed": 6,
+  "target_angle_deg": 0.0,
+  "total_timesteps": 300000,
+  "updated_at_unix": 1778680353.8537574
+}

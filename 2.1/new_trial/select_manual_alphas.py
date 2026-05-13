@@ -52,7 +52,9 @@ def choose_best_manual_alphas_auc(eval_df: pd.DataFrame, selected_targets: List[
             seeds_present = sorted(int(x) for x in sub_a['seed'].unique())
             curve = sub_a.groupby('timestep', as_index=False)['eval_return_mean'].mean().sort_values('timestep')
             final_return = float(curve['eval_return_mean'].iloc[-1])
-            auc = float(np.trapz(curve['eval_return_mean'].to_numpy(), curve['timestep'].to_numpy()))
+            auc = float(np.trapezoid(curve['eval_return_mean'].to_numpy(), curve['timestep'].to_numpy())
+                        if hasattr(np, 'trapezoid') else
+                        np.trapz(curve['eval_return_mean'].to_numpy(), curve['timestep'].to_numpy()))
             rows.append({
                 'target_angle_deg': float(theta),
                 'manual_alpha': float(alpha),

@@ -1,0 +1,18 @@
+Wrote 72 jobs -> outputs/pendulum_final_300k_clean/manual_search_jobs.jsonl
+Running 72 jobs with 6 worker(s), start_method=spawn
+Manifest: /research/assignments/RL/RL-PA3/2.1/new_trial/outputs/pendulum_final_300k_clean/manual_search_jobs.jsonl
+Results:  /research/assignments/RL/RL-PA3/2.1/new_trial/outputs/pendulum_final_300k_clean/manual_search_jobs_results.jsonl
+Live status: status.json every 5000 train steps per seed
+PyTorch threads per worker: 1
+Tip: if the machine lags, stop and rerun with --workers 4 or --workers 6. Completed DONE.txt runs will be skipped.
+aggregate train steps:   0%|          | 0/21600000 [00:00<?, ?step/s]aggregate train steps: 100%|██████████| 21600000/21600000 [00:00<00:00, 26207620.60step/s]aggregate train steps: 100%|██████████| 21600000/21600000 [00:00<00:00, 26207620.60step/s, active=0, done_files=72/72, failed=0, jobs=3/72]                                                                                                                                           aggregate train steps: 100%|██████████| 21600000/21600000 [00:00<00:00, 26207620.60step/s, active=0, done_files=72/72, failed=0, jobs=3/72]aggregate train steps: 100%|██████████| 21600000/21600000 [00:00<00:00, 26207620.60step/s, active=0, done_files=72/72, failed=0, jobs=72/72]aggregate train steps: 100%|██████████| 21600000/21600000 [00:00<00:00, 26115702.89step/s, active=0, done_files=72/72, failed=0, jobs=72/72]
+
+No status yet. Jobs may still be importing/initializing/queued. queued_or_running=0
+Done. completed=72, failed=0, wallclock=1.2s
+Selected manual alphas:
+  target -60° -> alpha=0.03
+  target 90° -> alpha=0.01
+  target 120° -> alpha=0.01
+  target -150° -> alpha=0.01
+Wrote outputs/pendulum_final_300k_clean/selected_manual_alphas.json
+Wrote outputs/pendulum_final_300k_clean/manual_alpha_selection_table.csv

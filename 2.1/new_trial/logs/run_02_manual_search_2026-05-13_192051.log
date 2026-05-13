@@ -1,0 +1,23 @@
+Wrote 72 jobs -> outputs/pendulum_final_300k_clean/manual_search_jobs.jsonl
+Running 72 jobs with 6 worker(s), start_method=spawn
+Manifest: /research/assignments/RL/RL-PA3/2.1/new_trial/outputs/pendulum_final_300k_clean/manual_search_jobs.jsonl
+Results:  /research/assignments/RL/RL-PA3/2.1/new_trial/outputs/pendulum_final_300k_clean/manual_search_jobs_results.jsonl
+Live status: status.json every 5000 train steps per seed
+PyTorch threads per worker: 1
+Tip: if the machine lags, stop and rerun with --workers 4 or --workers 6. Completed DONE.txt runs will be skipped.
+aggregate train steps:   0%|          | 0/21600000 [00:00<?, ?step/s]aggregate train steps: 100%|██████████| 21600000/21600000 [00:00<00:00, 26348230.10step/s]aggregate train steps: 100%|██████████| 21600000/21600000 [00:00<00:00, 26348230.10step/s, active=0, done_files=72/72, failed=0, jobs=2/72]                                                                                                                                           aggregate train steps: 100%|██████████| 21600000/21600000 [00:00<00:00, 26348230.10step/s, active=0, done_files=72/72, failed=0, jobs=2/72]aggregate train steps: 100%|██████████| 21600000/21600000 [00:00<00:00, 26348230.10step/s, active=0, done_files=72/72, failed=0, jobs=72/72]aggregate train steps: 100%|██████████| 21600000/21600000 [00:00<00:00, 26258308.21step/s, active=0, done_files=72/72, failed=0, jobs=72/72]
+
+No status yet. Jobs may still be importing/initializing/queued. queued_or_running=0
+Done. completed=72, failed=0, wallclock=1.1s
+Traceback (most recent call last):
+  File "/research/assignments/RL/RL-PA3/2.1/new_trial/select_manual_alphas.py", line 109, in <module>
+    main()
+  File "/research/assignments/RL/RL-PA3/2.1/new_trial/select_manual_alphas.py", line 90, in main
+    selected, summary = choose_best_manual_alphas_auc(eval_df, selected_targets, tuning_seeds, args.w_final, args.w_auc)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/research/assignments/RL/RL-PA3/2.1/new_trial/select_manual_alphas.py", line 55, in choose_best_manual_alphas_auc
+    auc = float(np.trapz(curve['eval_return_mean'].to_numpy(), curve['timestep'].to_numpy()))
+                ^^^^^^^^
+  File "/home/shriprasad/miniconda3/envs/pa3/lib/python3.11/site-packages/numpy/__init__.py", line 792, in __getattr__
+    raise AttributeError(f"module {__name__!r} has no attribute {attr!r}")
+AttributeError: module 'numpy' has no attribute 'trapz'. Did you mean: 'trace'?

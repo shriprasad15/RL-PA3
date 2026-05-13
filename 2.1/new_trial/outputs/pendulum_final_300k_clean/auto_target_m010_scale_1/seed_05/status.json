@@ -1,0 +1,17 @@
+{
+  "best_eval_return": null,
+  "condition": "auto_target_m010_scale_1",
+  "current_step": 300000,
+  "elapsed_seconds": 8.106231689453125e-06,
+  "last_eval_return": null,
+  "manual_alpha": null,
+  "mode": "auto",
+  "phase": "skipped_done",
+  "pid": 135204,
+  "progress_fraction": 1.0,
+  "reward_scale": 1.0,
+  "seed": 5,
+  "target_angle_deg": -10.0,
+  "total_timesteps": 300000,
+  "updated_at_unix": 1778680353.8554938
+}

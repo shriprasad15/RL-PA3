@@ -1,0 +1,14 @@
+{
+  "selection_rule": "0.5*normalized_final_return + 0.5*normalized_AUC",
+  "tuning_seeds": [
+    0,
+    1,
+    2
+  ],
+  "selected_alphas": {
+    "-60.0": 0.03,
+    "90.0": 0.01,
+    "120.0": 0.01,
+    "-150.0": 0.01
+  }
+}

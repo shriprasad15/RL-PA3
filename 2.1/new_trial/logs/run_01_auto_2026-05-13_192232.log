@@ -1,0 +1,11 @@
+Wrote 120 jobs -> outputs/pendulum_final_300k_clean/auto_jobs.jsonl
+Running 120 jobs with 6 worker(s), start_method=spawn
+Manifest: /research/assignments/RL/RL-PA3/2.1/new_trial/outputs/pendulum_final_300k_clean/auto_jobs.jsonl
+Results:  /research/assignments/RL/RL-PA3/2.1/new_trial/outputs/pendulum_final_300k_clean/auto_jobs_results.jsonl
+Live status: status.json every 5000 train steps per seed
+PyTorch threads per worker: 1
+Tip: if the machine lags, stop and rerun with --workers 4 or --workers 6. Completed DONE.txt runs will be skipped.
+aggregate train steps:   0%|          | 0/36000000 [00:00<?, ?step/s]aggregate train steps: 100%|██████████| 36000000/36000000 [00:00<00:00, 44407143.03step/s]aggregate train steps: 100%|██████████| 36000000/36000000 [00:00<00:00, 44407143.03step/s, active=0, done_files=120/120, failed=0, jobs=1/120]                                                                                                                                              aggregate train steps: 100%|██████████| 36000000/36000000 [00:00<00:00, 44407143.03step/s, active=0, done_files=120/120, failed=0, jobs=1/120]aggregate train steps: 100%|██████████| 36000000/36000000 [00:00<00:00, 44407143.03step/s, active=0, done_files=120/120, failed=0, jobs=9/120]aggregate train steps: 100%|██████████| 36000000/36000000 [00:00<00:00, 44407143.03step/s, active=0, done_files=120/120, failed=0, jobs=120/120]aggregate train steps: 100%|██████████| 36000000/36000000 [00:00<00:00, 43095423.60step/s, active=0, done_files=120/120, failed=0, jobs=120/120]
+
+No status yet. Jobs may still be importing/initializing/queued. queued_or_running=0
+Done. completed=120, failed=0, wallclock=1.2s

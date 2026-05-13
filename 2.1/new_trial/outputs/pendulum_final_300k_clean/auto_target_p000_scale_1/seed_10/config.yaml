@@ -1,0 +1,61 @@
+experiment:
+  env_id: Pendulum-v1
+  episode_length: 1000
+  total_timesteps: 300000
+  eval_every: 10000
+  eval_episodes: 20
+  seeds:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+reward:
+  angle_weight: 1.0
+  angular_velocity_weight: 0.1
+  torque_weight: 0.001
+  reward_scale: 1.0
+sac:
+  gamma: 0.99
+  tau: 0.005
+  replay_buffer_size: 1000000
+  batch_size: 256
+  random_exploration_steps: 500
+  learning_starts: 500
+  updates_per_step: 1
+network:
+  hidden_layers:
+  - 256
+  - 256
+  actor_log_std_min: -20
+  actor_log_std_max: 2
+optimizer:
+  actor_lr: 0.0003
+  critic_lr: 0.0003
+  alpha_lr: 0.0003
+entropy:
+  automatic_alpha_tuning: true
+  initial_alpha: 0.2
+  target_entropy: -1.0
+analysis:
+  target_tolerance_deg: 10.0
+artifacts:
+  save_eval_checkpoints: false
+runtime:
+  status_every_steps: 5000
+run:
+  target_angle_deg: 0.0
+  seed: 10
+  mode: auto
+  reward_scale: 1.0
+  manual_alpha: null

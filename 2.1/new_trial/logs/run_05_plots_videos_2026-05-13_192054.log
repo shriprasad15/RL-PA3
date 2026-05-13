@@ -1,0 +1,53 @@
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+Wrote 12 plots to outputs/pendulum_final_300k_clean/plots
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_eval_return_mean.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_eval_return_mean.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_mean_abs_angle_error_deg.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_mean_abs_angle_error_deg.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_target_occupancy.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_target_occupancy.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_mean_abs_angular_velocity.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_mean_abs_angular_velocity.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_mean_squared_torque.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_mean_squared_torque.png
+  outputs/pendulum_final_300k_clean/plots/auto_all_targets_alpha.png
+  outputs/pendulum_final_300k_clean/plots/manual_vs_auto_panels_alpha.png
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()
+/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_plots.py:134: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  ax.legend()

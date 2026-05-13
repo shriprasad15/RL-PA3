@@ -1,0 +1,20 @@
+{
+  "alpha": 0.029999999329447746,
+  "best_eval_return": -754.3873437626498,
+  "condition": "manual_target_m060_alpha_0p03_scale_1",
+  "current_step": 135000,
+  "elapsed_seconds": 1052.4593832492828,
+  "episodes_logged": 135,
+  "last_eval_return": -776.8497795528954,
+  "manual_alpha": 0.03,
+  "mode": "manual",
+  "phase": "training",
+  "pid": 135237,
+  "progress_fraction": 0.45,
+  "replay_size": 135000,
+  "reward_scale": 1.0,
+  "seed": 9,
+  "target_angle_deg": -60.0,
+  "total_timesteps": 300000,
+  "updated_at_unix": 1778683713.6529915
+}

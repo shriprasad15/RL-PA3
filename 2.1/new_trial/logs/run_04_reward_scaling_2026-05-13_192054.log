@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_manifests.py", line 164, in <module>
+    main()
+  File "/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_manifests.py", line 155, in main
+    jobs = build_reward_scaling(base_cfg, output_root, seeds, args.selected_alpha_json, total_timesteps, args.device, target=90.0)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_manifests.py", line 97, in build_reward_scaling
+    selected = load_selected_alphas(selected_alpha_json)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/research/assignments/RL/RL-PA3/2.1/new_trial/make_pendulum_manifests.py", line 79, in load_selected_alphas
+    with open(path, 'r') as f:
+         ^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'outputs/pendulum_final_300k_clean/selected_manual_alphas.json'
