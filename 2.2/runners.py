@@ -207,7 +207,7 @@ def run_continuous(seed: int, tag: str = "cont_auto", *, total_steps: int,
 # ---------------------------------------------------------------------------
 def run_hover_switch(seed: int, tag: str, *, autotune: bool, init_alpha: float,
                      steps_pre: int, steps_post: int, eval_every: int,
-                     buffer_size: int = 100_000, device=None,
+                     buffer_size: int = 250_000, device=None,
                      output_root: str | None = None):
     set_global_seed(seed)
     run_dir = _seed_dir(tag, seed, output_root)

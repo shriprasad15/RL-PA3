@@ -133,6 +133,7 @@ class SACAgent:
         critic_loss = F.mse_loss(q1, y) + F.mse_loss(q2, y)
         self.critic_opt.zero_grad()
         critic_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 10.0)
         self.critic_opt.step()
 
         # ----- actor loss -----
@@ -144,6 +145,7 @@ class SACAgent:
         actor_loss = (self.alpha.detach() * logp_pi - q_pi).mean()
         self.actor_opt.zero_grad()
         actor_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 10.0)
         self.actor_opt.step()
         for p in self.critic.parameters():
             p.requires_grad_(True)

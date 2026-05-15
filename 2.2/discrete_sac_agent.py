@@ -31,18 +31,18 @@ class DiscreteSACConfig:
     hidden: tuple = (256, 256)
     actor_lr: float = 3e-4
     critic_lr: float = 3e-4
-    alpha_lr: float = 3e-4
+    alpha_lr: float = 1e-4
     gamma: float = 0.99
     tau: float = 0.005
     batch_size: int = 256
     buffer_size: int = 1_000_000
     start_steps: int = 10_000
-    update_after: int = 1_000
+    update_after: int = 10_000
     update_every: int = 1
     grad_steps_per_update: int = 1
     autotune_alpha: bool = True
     init_alpha: float = 0.2
-    target_entropy_ratio: float = 0.98  # of the max entropy log(|A|)
+    target_entropy_ratio: float = 0.50
 
 
 class DiscreteSACAgent:
