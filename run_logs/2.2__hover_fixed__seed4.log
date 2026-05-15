@@ -1,0 +1,67 @@
+# cmd: /home/shriprasad/miniconda3/envs/pa3/bin/python run_experiment.py --kind hover --seed 4 --mode fixed --steps-pre 300000 --steps-post 300000 --eval-every 10000
+# cwd: /research/assignments/RL/RL-PA3/2.2
+# threads_per_worker: 4
+
+RUN  hover_fixed seed=4
+[step       0] eval_return=-243.95 hover_hits=0.05
+[step   10000] eval_return=-238.22 hover_hits=0.05
+[step   20000] eval_return=1.31 hover_hits=0.35
+[step   30000] eval_return=6.43 hover_hits=0.45
+[step   40000] eval_return=14.44 hover_hits=0.25
+[step   50000] eval_return=150.94 hover_hits=1.00
+[step   60000] eval_return=102.11 hover_hits=0.90
+[step   70000] eval_return=0.69 hover_hits=0.90
+[step   80000] eval_return=-13.35 hover_hits=0.80
+[step   90000] eval_return=92.98 hover_hits=0.80
+[step  100000] eval_return=143.49 hover_hits=1.00
+[step  110000] eval_return=147.92 hover_hits=1.00
+[step  120000] eval_return=205.92 hover_hits=1.00
+[step  130000] eval_return=119.61 hover_hits=1.00
+[step  140000] eval_return=108.54 hover_hits=1.00
+[step  150000] eval_return=106.75 hover_hits=1.00
+[step  160000] eval_return=182.56 hover_hits=1.00
+[step  170000] eval_return=132.08 hover_hits=1.00
+[step  180000] eval_return=184.40 hover_hits=0.95
+[step  190000] eval_return=200.19 hover_hits=1.00
+[step  200000] eval_return=183.45 hover_hits=1.00
+[step  210000] eval_return=157.98 hover_hits=0.95
+[step  220000] eval_return=153.90 hover_hits=1.00
+[step  230000] eval_return=148.44 hover_hits=0.95
+[step  240000] eval_return=115.63 hover_hits=0.95
+[step  250000] eval_return=142.53 hover_hits=0.95
+[step  260000] eval_return=78.80 hover_hits=0.85
+[step  270000] eval_return=156.39 hover_hits=1.00
+[step  280000] eval_return=180.26 hover_hits=1.00
+[step  290000] eval_return=160.12 hover_hits=1.00
+[step  300000] eval_return=176.97 hover_hits=0.95
+[step  310000] eval_return=-82.05 hover_hits=0.85
+[step  320000] eval_return=-165.27 hover_hits=1.00
+[step  330000] eval_return=-122.44 hover_hits=0.85
+[step  340000] eval_return=-37.63 hover_hits=0.80
+[step  350000] eval_return=145.04 hover_hits=0.95
+[step  360000] eval_return=75.17 hover_hits=0.80
+[step  370000] eval_return=141.63 hover_hits=0.95
+[step  380000] eval_return=138.15 hover_hits=0.60
+[step  390000] eval_return=74.17 hover_hits=0.45
+[step  400000] eval_return=-63.36 hover_hits=0.40
+[step  410000] eval_return=14.45 hover_hits=0.40
+[step  420000] eval_return=-2.61 hover_hits=0.45
+[step  430000] eval_return=-10.65 hover_hits=0.15
+[step  440000] eval_return=-32.11 hover_hits=0.10
+[step  450000] eval_return=53.44 hover_hits=0.00
+[step  460000] eval_return=61.18 hover_hits=0.05
+[step  470000] eval_return=35.58 hover_hits=0.00
+[step  480000] eval_return=218.18 hover_hits=0.00
+[step  490000] eval_return=174.28 hover_hits=0.00
+[step  500000] eval_return=120.46 hover_hits=0.10
+[step  510000] eval_return=169.51 hover_hits=0.05
+[step  520000] eval_return=246.10 hover_hits=0.10
+[step  530000] eval_return=200.20 hover_hits=0.15
+[step  540000] eval_return=239.51 hover_hits=0.20
+[step  550000] eval_return=230.55 hover_hits=0.35
+[step  560000] eval_return=257.17 hover_hits=0.15
+[step  570000] eval_return=263.76 hover_hits=0.00
+[step  580000] eval_return=275.64 hover_hits=0.00
+[step  590000] eval_return=239.34 hover_hits=0.00
+[step  600000] eval_return=278.38 hover_hits=0.00
+DONE hover_fixed seed=4

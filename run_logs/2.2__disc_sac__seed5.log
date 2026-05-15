@@ -1,0 +1,32 @@
+# cmd: /home/shriprasad/miniconda3/envs/pa3/bin/python run_experiment.py --kind disc --seed 5 --total-steps 250000 --eval-every 10000
+# cwd: /research/assignments/RL/RL-PA3/2.2
+# threads_per_worker: 4
+
+RUN  disc_sac seed=5
+[step       0] eval return = -565.10
+[step   10000] eval return = -452.28
+[step   20000] eval return = -137.81
+[step   30000] eval return = -143.91
+[step   40000] eval return = -178.23
+[step   50000] eval return = -214.75
+[step   60000] eval return = -243.65
+[step   70000] eval return = -235.85
+[step   80000] eval return = -490.01
+[step   90000] eval return = -508.41
+[step  100000] eval return = -698.17
+[step  110000] eval return = -758.20
+[step  120000] eval return = -758.20
+[step  130000] eval return = -758.20
+[step  140000] eval return = -758.20
+[step  150000] eval return = -758.20
+[step  160000] eval return = -758.20
+[step  170000] eval return = -758.20
+[step  180000] eval return = -758.20
+[step  190000] eval return = -758.20
+[step  200000] eval return = -758.20
+[step  210000] eval return = -758.20
+[step  220000] eval return = -758.20
+[step  230000] eval return = -758.20
+[step  240000] eval return = -758.20
+[step  250000] eval return = -758.20
+DONE disc_sac seed=5

@@ -1,0 +1,32 @@
+# cmd: /home/shriprasad/miniconda3/envs/pa3/bin/python run_experiment.py --kind dqn --seed 0 --total-steps 250000 --eval-every 10000
+# cwd: /research/assignments/RL/RL-PA3/2.2
+# threads_per_worker: 4
+
+RUN  dqn seed=0
+[step       0] eval return = -579.90
+[step   10000] eval return = -549.89
+[step   20000] eval return = -79.86
+[step   30000] eval return = -272.20
+[step   40000] eval return = -166.76
+[step   50000] eval return = -85.68
+[step   60000] eval return = -94.79
+[step   70000] eval return = -105.54
+[step   80000] eval return = -48.90
+[step   90000] eval return = -36.93
+[step  100000] eval return = -32.48
+[step  110000] eval return = -25.75
+[step  120000] eval return = -27.26
+[step  130000] eval return = -29.79
+[step  140000] eval return = -202.08
+[step  150000] eval return = -161.94
+[step  160000] eval return = -127.80
+[step  170000] eval return = -134.13
+[step  180000] eval return = -93.34
+[step  190000] eval return = -38.66
+[step  200000] eval return = -30.34
+[step  210000] eval return = -58.93
+[step  220000] eval return = -78.87
+[step  230000] eval return = -86.36
+[step  240000] eval return = -126.31
+[step  250000] eval return = -86.50
+DONE dqn seed=0

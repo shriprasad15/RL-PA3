@@ -1,0 +1,37 @@
+# cmd: /home/shriprasad/miniconda3/envs/pa3/bin/python run_experiment.py --kind continuous --seed 1 --total-steps 300000 --eval-every 10000
+# cwd: /research/assignments/RL/RL-PA3/2.2
+# threads_per_worker: 4
+
+RUN  cont_auto seed=1
+[step       0] eval return = -144.92  
+[step   10000] eval return = -182.96  
+[step   20000] eval return = 79.13  
+[step   30000] eval return = -59.99  
+[step   40000] eval return = -37.48  
+[step   50000] eval return = -121.41  
+[step   60000] eval return = 70.89  
+[step   70000] eval return = 201.36  
+[step   80000] eval return = 185.43  
+[step   90000] eval return = 34.44  
+[step  100000] eval return = 208.68  
+[step  110000] eval return = 154.70  
+[step  120000] eval return = 138.25  
+[step  130000] eval return = 98.16  
+[step  140000] eval return = 169.90  
+[step  150000] eval return = 125.80  
+[step  160000] eval return = 147.27  
+[step  170000] eval return = 210.24  
+[step  180000] eval return = 186.49  
+[step  190000] eval return = 235.15  
+[step  200000] eval return = 191.19  
+[step  210000] eval return = 191.90  
+[step  220000] eval return = 207.60  
+[step  230000] eval return = 185.63  
+[step  240000] eval return = 255.62  
+[step  250000] eval return = 210.13  
+[step  260000] eval return = 229.00  
+[step  270000] eval return = 203.36  
+[step  280000] eval return = 248.94  
+[step  290000] eval return = 260.82  
+[step  300000] eval return = 234.58  
+DONE cont_auto seed=1

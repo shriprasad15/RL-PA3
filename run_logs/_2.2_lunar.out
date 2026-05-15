@@ -1,0 +1,11 @@
+catalogue: 30 jobs total, 24 already done, 6 to run
+host cpu : 24 cores
+workers  : 6  (threads per worker: 4; total threads: 24)
+[1/6] OK  [2.2] cont_auto seed=0  (4034s)  log=/research/assignments/RL/RL-PA3/run_logs/2.2__cont_auto__seed0.log
+[2/6] OK  [2.2] cont_auto seed=1  (4104s)  log=/research/assignments/RL/RL-PA3/run_logs/2.2__cont_auto__seed1.log
+[3/6] OK  [2.2] cont_auto seed=3  (4191s)  log=/research/assignments/RL/RL-PA3/run_logs/2.2__cont_auto__seed3.log
+[4/6] OK  [2.2] cont_auto seed=5  (4222s)  log=/research/assignments/RL/RL-PA3/run_logs/2.2__cont_auto__seed5.log
+[5/6] OK  [2.2] cont_auto seed=4  (4312s)  log=/research/assignments/RL/RL-PA3/run_logs/2.2__cont_auto__seed4.log
+[6/6] OK  [2.2] cont_auto seed=2  (4355s)  log=/research/assignments/RL/RL-PA3/run_logs/2.2__cont_auto__seed2.log
+
+Finished 6/6 in 72.6 min (0 failed)

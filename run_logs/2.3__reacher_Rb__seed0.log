@@ -1,0 +1,8 @@
+# cmd: /home/shriprasad/miniconda3/envs/pa3/bin/python run_experiment.py --reward Rb --seed 0 --total-steps 500000 --eval-every 10000
+# cwd: /research/assignments/RL/RL-PA3/2.3
+# threads_per_worker: 4
+
+/home/shriprasad/miniconda3/envs/pa3/lib/python3.11/site-packages/glfw/__init__.py:917: GLFWError: (65550) b'X11: The DISPLAY environment variable is missing'
+  warnings.warn(message, GLFWError)
+RUN reward=Rb seed=0 total_steps=500000 eval_every=10000 output_root=runs
+DONE reward=Rb seed=0

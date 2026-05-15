@@ -1,0 +1,12 @@
+{
+  "env": "Pendulum theta=0",
+  "theta_target_deg": 0,
+  "algo": "SAC (ground-truth reward)",
+  "seed": 5,
+  "total_steps": 200000,
+  "initial_random_steps": 500,
+  "replay_buffer_size": 1000000,
+  "replay_buffer_type": "infinite-equivalent (1M)",
+  "eval_every": 10000,
+  "eval_episodes": 20
+}

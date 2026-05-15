@@ -1,0 +1,30 @@
+catalogue: 18 jobs total, 0 already done, 18 to run
+host cpu : 24 cores
+workers  : 6  (threads per worker: 4; total threads: 24)
+[1/18] OK  [2.3] reacher_Ra seed=4  (30014s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Ra__seed4.log
+[2/18] OK  [2.3] reacher_Ra seed=1  (30166s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Ra__seed1.log
+[3/18] OK  [2.3] reacher_Ra seed=5  (30217s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Ra__seed5.log
+[4/18] OK  [2.3] reacher_Ra seed=0  (30225s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Ra__seed0.log
+[5/18] OK  [2.3] reacher_Ra seed=3  (30255s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Ra__seed3.log
+[6/18] OK  [2.3] reacher_Ra seed=2  (30361s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Ra__seed2.log
+[7/18] OK  [2.3] reacher_Rb seed=0  (17794s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rb__seed0.log
+[8/18] SKP [2.3] reacher_Rc seed=0
+[9/18] SKP [2.3] reacher_Rc seed=1
+[10/18] SKP [2.3] reacher_Rc seed=2
+[11/18] SKP [2.3] reacher_Rc seed=3
+[12/18] SKP [2.3] reacher_Rc seed=4
+[13/18] SKP [2.3] reacher_Rc seed=5
+[14/18] OK  [2.3] reacher_Rb seed=2  (17613s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rb__seed2.log
+[15/18] OK  [2.3] reacher_Rb seed=1  (17679s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rb__seed1.log
+[16/18] OK  [2.3] reacher_Rb seed=4  (17603s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rb__seed4.log
+[17/18] OK  [2.3] reacher_Rb seed=3  (17641s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rb__seed3.log
+[18/18] OK  [2.3] reacher_Rb seed=5  (17511s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rb__seed5.log
+
+Finished 18/18 in 797.9 min (0 failed)
+ch/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rc__seed4.log
+[3/18] OK  [2.3] reacher_Rc seed=0  (30159s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rc__seed0.log
+[4/18] OK  [2.3] reacher_Rc seed=5  (30274s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rc__seed5.log
+[5/18] OK  [2.3] reacher_Rc seed=1  (30541s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rc__seed1.log
+[6/18] OK  [2.3] reacher_Rc seed=3  (30588s)  log=/research/assignments/RL/RL-PA3/run_logs/2.3__reacher_Rc__seed3.log
+
+Finished 6/18 in 517.3 min (12 failed)
