@@ -36,6 +36,8 @@ run_logs/
 !2.2/runs/**
 !2.3/runs/
 !2.3/runs/**
+!2.3/runs/**/*.pt
+!2.3/runs/**/*.pkl
 !2.3/videos/
 !2.3/videos/**
 

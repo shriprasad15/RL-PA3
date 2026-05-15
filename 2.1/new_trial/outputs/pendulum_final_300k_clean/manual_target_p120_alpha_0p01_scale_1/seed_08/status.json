@@ -1,0 +1,18 @@
+{
+  "alpha": 0.009999999776482582,
+  "best_eval_return": -441.3691890987287,
+  "condition": "manual_target_p120_alpha_0p01_scale_1",
+  "current_step": 300000,
+  "elapsed_seconds": 2599.451140642166,
+  "last_eval_return": -479.85272018655485,
+  "manual_alpha": 0.01,
+  "mode": "manual",
+  "phase": "completed",
+  "pid": 135238,
+  "progress_fraction": 1.0,
+  "reward_scale": 1.0,
+  "seed": 8,
+  "target_angle_deg": 120.0,
+  "total_timesteps": 300000,
+  "updated_at_unix": 1778692917.2616105
+}

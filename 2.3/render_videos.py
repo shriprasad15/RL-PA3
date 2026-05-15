@@ -59,12 +59,15 @@ def render_rollout(
     width: int = 480,
     camera_id: int = 0,
     ignore_done: bool = False,
+    no_termination: bool = False,
     device,
 ):
     actor = load_actor(actor_path, device)
 
-    # Use eval env so Rc behaves with the hard cap (not the training arm-reset loop)
-    env = make_reacher(reward_name, mode="eval")
+    # no_termination: use train env for Rc so arm never terminates mid-episode;
+    # we simply never break, running exactly max_steps in the same episode.
+    mode = "train" if no_termination else "eval"
+    env = make_reacher(reward_name, mode=mode)
 
     # Unwrap to DMCReacherBase
     base = env
@@ -88,9 +91,14 @@ def render_rollout(
         total_return += reward
         # Render after step so motion is visible
         frames.append(dm_physics.render(height=height, width=width, camera_id=camera_id))
-        if (terminated or truncated) and not ignore_done:
+        if no_termination:
+            # Never break — run the full max_steps in one continuous episode.
+            # The train-mode Rc env handles timeout internally (arm reset, penalty)
+            # but the episode itself never ends from the gym side.
+            pass
+        elif (terminated or truncated) and not ignore_done:
             break
-        if terminated or truncated:
+        elif terminated or truncated:
             # Reset env but keep recording; refresh physics reference after reset
             obs, _ = env.reset(seed=seed)
             dm_physics = base._env.physics
@@ -117,6 +125,8 @@ def main():
     parser.add_argument("--width", type=int, default=480)
     parser.add_argument("--ignore_done", action="store_true",
                         help="Keep recording after episode ends (env resets and continues)")
+    parser.add_argument("--no_termination", action="store_true",
+                        help="Run exactly --steps in one continuous episode, never terminate")
     parser.add_argument("--logs", default="logs")
     parser.add_argument("--out", default="videos")
     args = parser.parse_args()
@@ -143,6 +153,7 @@ def main():
                 height=args.height,
                 width=args.width,
                 ignore_done=args.ignore_done,
+                no_termination=args.no_termination,
                 device=device,
             )
 
