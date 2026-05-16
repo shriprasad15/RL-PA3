@@ -1,0 +1,14 @@
+{
+  "condition": "auto_target_m060_scale_1",
+  "seed": 1,
+  "target": -60.0,
+  "mode": "auto",
+  "reward_scale": 1.0,
+  "manual_alpha": null,
+  "step": 125000,
+  "total_steps": 300000,
+  "phase": "training",
+  "elapsed_seconds": 940.1598370075226,
+  "alpha": 0.0010080102365463972,
+  "replay_size": 125000
+}

@@ -1,0 +1,14 @@
+{
+  "condition": "auto_target_p090_scale_1",
+  "seed": 2,
+  "target": 90.0,
+  "mode": "auto",
+  "reward_scale": 1.0,
+  "manual_alpha": null,
+  "step": 5000,
+  "total_steps": 300000,
+  "phase": "training",
+  "elapsed_seconds": 3.400299072265625,
+  "alpha": 0.19999998807907104,
+  "replay_size": 5000
+}

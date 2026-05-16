@@ -1,0 +1,27 @@
+Running 4 seeds in parallel (target_entropy_ratio=0.98)
+concurrent.futures.process._RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "/home/shriprasad/miniconda3/envs/pa3/lib/python3.11/concurrent/futures/process.py", line 261, in _process_worker
+    r = call_item.fn(*call_item.args, **call_item.kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/research/assignments/RL/RL-PA3/2.2/run_disc_sac_fixed_parallel.py", line 46, in run_one
+    save_log(log, p, config=run_config)
+  File "/research/assignments/RL/RL-PA3/2.2/sac_core.py", line 257, in save_log
+    json.dump(_json_safe(log.to_dict()), f)
+                         ^^^^^^^^^^^
+AttributeError: 'tuple' object has no attribute 'to_dict'
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/research/assignments/RL/RL-PA3/2.2/run_disc_sac_fixed_parallel.py", line 55, in <module>
+    print(f"  {f.result()}")
+               ^^^^^^^^^^
+  File "/home/shriprasad/miniconda3/envs/pa3/lib/python3.11/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/shriprasad/miniconda3/envs/pa3/lib/python3.11/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+AttributeError: 'tuple' object has no attribute 'to_dict'

@@ -1,0 +1,14 @@
+{
+  "selected_alphas": {
+    "-60.0": 0.003,
+    "90.0": 0.003,
+    "120.0": 0.003
+  },
+  "selection_rule": "0.5*normalized_final_return + 0.5*normalized_AUC",
+  "tuning_seeds": [
+    0,
+    1,
+    2
+  ],
+  "torque_limit": 6.0
+}

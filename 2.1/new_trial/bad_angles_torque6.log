@@ -1,0 +1,14 @@
+========== BAD ANGLE TORQUE ±6 RUN ==========
+Output: outputs/pendulum_bad_angles_torque6
+Workers: 8
+Device: cpu
+Total steps: 300000
+Seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+Tuning seeds: [0, 1, 2]
+Torque limit: 6.0
+
+========== PHASE 1: auto + manual alpha search ==========
+Phase 1 jobs: 123
+Running 123 jobs with 8 workers
+Results -> outputs/pendulum_bad_angles_torque6/phase1_results.jsonl
+jobs:   0%|          | 0/123 [00:00<?, ?job/s]

@@ -1,0 +1,67 @@
+{
+  "auto_targets": [
+    -60.0,
+    -90.0,
+    90.0,
+    120.0
+  ],
+  "manual_targets": [
+    -60.0,
+    90.0,
+    120.0
+  ],
+  "alpha_grid": [
+    0.003,
+    0.005,
+    0.01,
+    0.03,
+    0.05,
+    0.1,
+    0.2
+  ],
+  "reward_scales": [
+    10.0,
+    0.1
+  ],
+  "total_steps": 300000,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "tuning_seeds": [
+    0,
+    1,
+    2
+  ],
+  "torque_limit": 6.0,
+  "random_steps": 10000,
+  "learning_starts": 10000,
+  "eval_every": 10000,
+  "eval_episodes": 20,
+  "gamma": 0.99,
+  "tau": 0.005,
+  "lr": 0.0003,
+  "batch_size": 256,
+  "replay_size": 1000000,
+  "hidden": 256,
+  "init_alpha": 0.2,
+  "target_entropy": -1.0,
+  "reward": {
+    "angle_weight": 1.0,
+    "angular_velocity_weight": 0.1,
+    "torque_weight": 0.001
+  }
+}

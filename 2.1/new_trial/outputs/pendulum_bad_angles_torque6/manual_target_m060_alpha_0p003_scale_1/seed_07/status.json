@@ -1,0 +1,18 @@
+{
+  "condition": "manual_target_m060_alpha_0p003_scale_1",
+  "seed": 7,
+  "target": -60.0,
+  "mode": "manual",
+  "reward_scale": 1.0,
+  "manual_alpha": 0.003,
+  "step": 10000,
+  "total_steps": 300000,
+  "phase": "eval_done",
+  "elapsed_seconds": 7.9621031284332275,
+  "alpha": 0.003000000026077032,
+  "replay_size": 10000,
+  "last_eval_return": -6427.110179688507,
+  "best_eval_return": -6320.719046766655,
+  "mean_abs_angle_error_deg": 97.33212538353729,
+  "target_occupancy": 0.03375
+}

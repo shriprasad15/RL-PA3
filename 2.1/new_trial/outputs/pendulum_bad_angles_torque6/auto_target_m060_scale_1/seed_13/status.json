@@ -1,0 +1,18 @@
+{
+  "condition": "auto_target_m060_scale_1",
+  "seed": 13,
+  "target": -60.0,
+  "mode": "auto",
+  "reward_scale": 1.0,
+  "manual_alpha": null,
+  "step": 60000,
+  "total_steps": 300000,
+  "phase": "eval_done",
+  "elapsed_seconds": 392.4559681415558,
+  "alpha": 0.0029383378569036722,
+  "replay_size": 60000,
+  "last_eval_return": -67.5845393438668,
+  "best_eval_return": -55.683775889799435,
+  "mean_abs_angle_error_deg": 3.375952314364451,
+  "target_occupancy": 0.9799
+}

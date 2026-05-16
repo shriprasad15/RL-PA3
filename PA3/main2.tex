@@ -1,0 +1,887 @@
+%% DA6400 Programming Assignment 2 — Report
+%% Compile with: pdflatex main.tex (run twice for cross-references)
+%%
+%% ─── FIGURE SAVING GUIDE ────────────────────────────────────────────────────
+%% In mountaincar_notebook_runner_main.ipynb, add plt.savefig(...) BEFORE
+%% each plt.show() call, then copy the saved files into this folder (report/).
+%%
+%% MAIN BODY figures  (save these from the notebook cells indicated):
+%%   fig_q2_ep.png          ← extracted from cell 12, output 0
+%%   fig_q3_ep.png          ← extracted from cell 15, output 0
+%%   fig_q4a_ep.png         ← extracted from cell 22, output 0
+%%   fig_q4b_dist.png       ← extracted from cell 24, output 0
+%%   fig_q4c_tol.png        ← extracted from cell 26, output 0
+%%   fig_q4d_batch.png      ← extracted from cell 32, output 0
+%%   fig_q4d_target.png     ← extracted from cell 37, output 0
+%%
+%% APPENDIX figures  (also extracted from notebook outputs):
+%%   fig_q2_steps.png       ← extracted from cell 12, output 1
+%%   fig_q3_steps.png       ← extracted from cell 15, output 1
+%%   fig_q4a_steps.png      ← extracted from cell 22, output 1
+%%   fig_q5_curves.png      ← extracted from cell 40, output 0  (bonus)
+%% ─────────────────────────────────────────────────────────────────────────────
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[top=1in,bottom=1in,left=1in,right=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}          % [demo] removed — real figures will render
+\graphicspath{{figures/}}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage[shortlabels]{enumitem}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{appendix}
+
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\setlist{noitemsep, topsep=2pt}
+
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+
+\title{\large\textbf{DA6400 : Reinforcement Learning (January--May 2026)\\
+Programming Assignment 3 Submission}}
+
+\author{
+\textbf{Ananya Lakshmi Ravi}$^{*}$ \quad
+\textbf{S Shriprasad}$^{*}$ \\[4pt]
+\small NS26Z145 \qquad DA25E054 \\[2pt]
+\small $^{*}$Equal Contribution
+}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-10pt}
+\begin{center}
+  \href{https://drive.google.com/drive/folders/1X8uYGpbVx5FsxH4-krvNpYKt9eCBpvZ9?usp=sharing}{{\color{blue}$\triangleright$~Source Code \& Video}}
+\end{center}
+\vspace{-4pt}
+
+\noindent\textbf{Team \& Contributions.}
+\textbf{Ananya Lakshmi Ravi} (NS26Z145) and \textbf{S Shriprasad} (DA25E054) both contributed equally. All experiments, debugging, and analysis were done collaboratively including the experimentations, the hyperparameter tuning and report writing.
+
+\vspace{4pt}
+\section*{Environment and Problem Setup}
+
+\subsection{MountainCar-v0 Environment}
+
+We use the MountainCar-v0 environment, a classical control problem where an underpowered car must reach the top of a hill. The key challenge is that the car cannot directly reach the goal and must instead learn to build momentum by moving back and forth.
+
+The state is a continuous 2D vector \(s = (x, v)\), where position \(x \in [-1.2, 0.6]\) and velocity \(v \in [-0.07, 0.07]\). The action space is discrete with three actions: push left, no push, and push right.
+
+The reward function is sparse and unchanged from the default environment:
+\[
+r_t = -1 \quad \text{for every timestep until the goal is reached.}
+\]
+Thus, the objective is to minimize the number of timesteps required to reach the goal state. The episode terminates when the car reaches the target position on the right hill. As required in the assignment, the default truncation length of 200 timesteps was modified to 2000 timesteps for the main experiments.
+
+\subsection{DQN Setup}
+
+We implemented vanilla DQN as required in the assignment, using:
+\begin{itemize}
+    \item discount factor \(\gamma = 0.99\),
+    \item \(\epsilon\)-greedy exploration,
+    \item fixed replay buffer,
+    \item uniformly random sampling from the replay buffer,
+    \item hard target network updates,
+    \item Adam optimizer,
+    \item Kaiming initialization for the ReLU-based Q-network.
+\end{itemize}
+
+The Q-network architecture used in all main experiments was:
+\[
+\text{Input}(2) \rightarrow 64 \rightarrow 64 \rightarrow 3,
+\]
+with ReLU nonlinearities between hidden layers. This architecture is sufficiently expressive for the low-dimensional state space while avoiding unnecessary overparameterization.
+
+\section*{Question 2: Vanilla DQN on MountainCar}
+
+\subsection*{Experimental Setup}
+
+For the vanilla DQN experiment, replay factor \(\rho = 1\) was used and training was run for 15 random seeds. Each run used a truncation length of 2000 timesteps. Training was continued until the policy reached near-optimal performance. The plots show the mean return across seeds with confidence intervals.
+
+\subsection*{Question 2a: Learning Behavior}
+
+\begin{itemize}
+    \item \textbf{Phase 1: Initial Failure Regime:} During the initial phase (approximately episodes 0--20), the agent behaves almost randomly because exploration is high. The returns are very low (around -1000), which shows that most episodes do not reach the goal and instead end after inefficient movement.
+
+    At this stage, the replay buffer mostly contains unsuccessful transitions. As a result, the Q-network does not yet learn a clear difference between good and bad actions. This is expected in MountainCar because the momentum-building strategy has not yet been discovered.
+
+    \item \textbf{Phase 2: First Successful Discoveries:} Between approximately episodes 20 and 120, the agent begins to find better action sequences and the returns start improving. The improvement is gradual rather than sudden.
+
+    As better transitions enter the replay buffer, temporal-difference learning starts passing useful information backward to earlier states. The agent slowly begins to use the environment dynamics more effectively, which leads to shorter episodes and better returns.
+
+    However, performance is still somewhat unstable in this phase, as seen from the fluctuations in the curve and the wider confidence intervals.
+
+    \item \textbf{Phase 3: Stable Improvement and Convergence:} After approximately episode 120, the learning curve becomes much more stable and approaches near-optimal performance. The returns level off around -110, which suggests that the goal is reached consistently in much fewer steps.
+
+    At this stage, the agent has learned the correct strategy: it swings back and forth to build momentum before moving toward the goal. The spread across seeds also becomes smaller, which shows that the learned behavior is more stable.
+
+    Further training does not lead to much additional improvement, which suggests that the policy has mostly converged.
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.82\linewidth, height=0.4\textwidth]{3phases.png}
+  \caption{Vanilla DQN (\(\rho=1\), truncation\,=\,2000): smoothed mean return vs.\ episode
+           averaged over 15 seeds, with 95\% bootstrap confidence interval.}
+  \label{fig:q2_ep}
+\end{figure}
+
+\subsection*{Q2 b: Interpretation of the Optimal Policy}
+
+An important qualitative question is whether the car directly accelerates toward the goal. It does not.
+
+The learned behavior is to first move left, even though the goal is on the right. This helps the car gain momentum. After that, the car swings back and uses the gained energy to climb the right hill and reach the goal. Thus, the policy learns to use the environment dynamics instead of moving greedily toward the target at every step.
+This behavior can be seen in the video attached in the repository.
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth, height=0.75\linewidth]{fig_q2_ep.png}
+        \caption{Return vs.\ episode (mean + 95\% CI over 15 seeds).}
+        \label{fig:q2_ep_sub}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth, height=0.75\linewidth]{fig_q2_steps.png}
+        \caption{Return vs.\ environment steps (sample-efficiency view).}
+        \label{fig:q2_steps_sub}
+    \end{subfigure}
+    \caption{Vanilla DQN (\(\rho=1\), truncation\,=\,2000) learning curves over 15 seeds, with 20-episode smoothing.}
+    \label{fig:q2_both}
+\end{figure}
+\subsection*{Seed-wise Variability}
+
+We observed noticeable variability across random seeds, especially in the stage at which the agent first discovers a successful trajectory. Some seeds learn the task relatively early, while others remain near the failure regime for a much longer time before improving. As a result, the confidence intervals are widest during the transition phase of learning and narrow only after most runs have converged.
+
+
+\section*{Question 3 a) and b) : Effect of Episode Truncation Length}
+
+This experiment studies the effect of the episode truncation length. The default MountainCar setting uses 200 timesteps, while the main experiments use 2000 timesteps. Three values are compared:
+\[
+T \in \{200, 1000, 2000\}.
+\]
+
+\subsection*{Case 1: Truncation Length \(T=200\)}
+
+When the truncation length is 200, the agent gets very little time in each episode. During early training, the agent behaves randomly and almost never reaches the goal.
+
+As a result, the replay buffer mostly contains unsuccessful transitions. The agent does not get enough useful learning signal, and performance improves very slowly. The learning curves remain poor compared to the other settings, showing that the agent struggles to learn under this truncation.
+
+\subsection*{Case 2: Truncation Length \(T=1000\)}
+
+When the truncation length is increased to 1000, the agent gets more time to explore. This increases the chance of discovering useful trajectories that can reach the goal.
+
+Learning becomes clearly better than the 200 setting. However, the results are still somewhat inconsistent across seeds. Some runs learn well, while others take longer to improve. Thus, this setting is better, but not fully stable.
+
+\subsection*{Case 3: Truncation Length \(T=2000\)}
+
+With a truncation length of 2000, the agent has enough time in each episode to explore and discover successful behavior even in the early stages.
+
+The learning curves improve earlier and are more stable across seeds. The final performance is also the best among the three settings. This shows that a larger truncation length helps learning in this environment.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.82\linewidth]{fig_q3_ep.png}
+  \caption{Return vs.\ episode for \(T\in\{200,1000,2000\}\) (15 seeds each,
+           20-episode smoothing window, 95\% CI shaded).}
+  \label{fig:q3_ep}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.82\linewidth]{fig_q3_steps.png}
+  \caption{Return vs.\ environment steps for \(T\in\{200,1000,2000\}\) (15 seeds each,
+           20-episode smoothing window, 95\% CI shaded).}
+  \label{fig:q3_steps}
+\end{figure}
+
+
+
+\subsection*{Q3c) Why Truncation Exists in Gymnasium}
+
+In the original MountainCar problem, there was no fixed episode limit. However, Gymnasium introduces truncation for practical reasons:
+\begin{itemize}
+    \item to prevent very long episodes,
+    \item to make training faster and more predictable,
+    \item to ensure fair comparison between methods,
+    \item to avoid runs getting stuck with poor policies.
+\end{itemize}
+
+Thus, truncation is mainly used for practical convenience.
+
+\subsection*{Q3d) Why Truncation Can Be Harmful}
+
+If the truncation length is too small, it can negatively affect learning.
+
+The agent may not get enough time to complete useful action sequences, especially the momentum-building behavior required in MountainCar. Important trajectories may be cut off early, which reduces the quality of the learning signal.
+
+This makes the problem harder than it should be and can lead to poor performance, as seen in the \(T=200\) case.
+
+\subsection*{What is an Appropriate Truncation Length?}
+
+From the results:
+\begin{itemize}
+    \item \(T=200\) is too small and leads to poor learning,
+    \item \(T=1000\) works better but is still somewhat inconsistent,
+    \item \(T=2000\) gives the most stable and reliable performance.
+\end{itemize}
+
+A good truncation length should be large enough to allow the agent to occasionally reach the goal during exploration. In these experiments, \(T=2000\) is the most suitable choice.
+
+
+\section*{Question 4 : Effect of Replay Factor}
+
+In vanilla DQN, the Q-network is updated once per environment step. In this part, the replay factor \(\rho\) controls how many mini-batch updates are performed per environment step. The values tested are
+\[
+\rho \in \{1,2,4,8\},
+\]
+where \(\rho=1\) is the vanilla DQN setting.
+
+The purpose of this experiment is to study how increasing the amount of replay affects learning speed, final performance, and stability.
+
+\subsection*{Question 4(a): Comparison of Replay-Factor Variants}
+
+The learning curves show that replay factor has a clear effect on performance.
+
+Among the four settings, \(\rho=2\) gives the best overall behaviour. It learns quickly and remains stable during training. The final performance is also slightly better than the vanilla setting.
+
+The vanilla case \(\rho=1\) also performs well, but it is slightly slower and slightly worse overall than \(\rho=2\).
+
+The setting \(\rho=4\) improves quickly in the beginning, but it is less stable and does not clearly outperform \(\rho=2\) in the final stage.
+
+The setting \(\rho=8\) performs the worst. It shows larger drops during training, more variation across runs, and the weakest aggregate performance.
+
+Overall, the results suggest that a small increase in replay is useful, but a very large replay factor is harmful.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{fig_q4a_ep.png}
+    \caption{Return vs.\ episode for \(\rho\in\{1,2,4,8\}\).}
+    \label{fig:q4a_ep}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{fig_q4a_steps.png}
+    \caption{Return vs.\ environment steps for \(\rho\in\{1,2,4,8\}\).}
+    \label{fig:q4a_steps}
+  \end{subfigure}
+  \caption{Question 4(a): Comparison of replay-factor variants using mean return curves over 15 seeds with confidence intervals.}
+  \label{fig:q4a_combined}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.60\linewidth]{fig_extra_boxplot_agg.png}
+  \caption{Question 4(a) — Comparison Plot 2: Aggregate performance
+           (AUC / number of episodes) per \(\rho\) variant.
+           Box plots show median, IQR, and outliers across 15 seeds.}
+  \label{fig:q4a_agg}
+\end{figure}
+
+\subsection*{Why These Differences Appear}
+
+Increasing the replay factor means that more gradient updates are made for each environment step. This can improve sample efficiency because each collected transition is used more times.
+
+However, when \(\rho\) becomes too large, the network is updated many times using replayed data before enough fresh experience is collected. This can make learning less stable. The agent may overuse old transitions, and the Q-values may drift because many bootstrapped updates are performed on stale data.
+
+This explains why \(\rho=2\) works well: it increases data usage without causing too much instability. In contrast, \(\rho=8\) appears to overtrain on replayed experience, which hurts both stability and final performance.
+
+\subsection*{Statistical Significance}
+
+To test whether the observed differences are statistically significant, we performed pairwise Mann-Whitney U tests on the aggregate performance scores across 15 seeds (see Appendix for the rationale behind test selection). Table~\ref{tab:q4a_agg} summarises the per-variant aggregate performance, and Table~\ref{tab:q4a_mwu} reports all pairwise test results.
+
+\begin{table}[H]
+\centering
+\caption{Aggregate performance (AUC / \#episodes) across 15 seeds per replay factor.}
+\label{tab:q4a_agg}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{ccccc}
+\toprule
+\(\rho\) & Mean & Std & 95\% CI & Best / Worst seed \\
+\midrule
+1 & $-175.66$ & $19.03$ & $[-185.28,\;-166.03]$ & best $-$149 / worst $-$216 \\
+2 & $-166.24$ & $8.83$  & $[-170.71,\;-161.77]$ & best $-$155 / worst $-$196 \\
+4 & $-174.60$ & $10.46$ & $[-179.90,\;-169.31]$ & best $-$158 / worst $-$198 \\
+8 & $-185.58$ & $15.43$ & $[-193.39,\;-177.77]$ & best $-$164 / worst $-$216 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\(\rho=2\) achieves the highest (least negative) mean with the smallest standard deviation, confirming it as the most reliable setting. \(\rho=8\) is the worst on both axes.
+
+\begin{table}[H]
+\centering
+\caption{Pairwise Mann-Whitney U tests on aggregate performance (\(\alpha=0.05\)).}
+\label{tab:q4a_mwu}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{cccc}
+\toprule
+Pair & \(U\) & \(p\)-value & Significant? \\
+\midrule
+\(\rho=1\) vs \(\rho=2\) & 88  & 0.3195 & No  \\
+\(\rho=1\) vs \(\rho=4\) & 126 & 0.5897 & No  \\
+\(\rho=1\) vs \(\rho=8\) & 153 & 0.0971 & No  \\
+\(\rho=2\) vs \(\rho=4\) & 177 & 0.0079 & \textbf{Yes} \\
+\(\rho=2\) vs \(\rho=8\) & 201 & 0.0003 & \textbf{Yes} \\
+\(\rho=4\) vs \(\rho=8\) & 161 & 0.0465 & \textbf{Yes} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\(\rho=2\) is significantly better than both \(\rho=4\) (\(p=0.008\)) and \(\rho=8\) (\(p=0.0003\)), and increasing replay from \(\rho=4\) to \(\rho=8\) also causes a significant drop (\(p=0.047\)). The comparisons involving \(\rho=1\) are all non-significant because vanilla DQN has much higher variance (\(\text{std}=19.03\)), driven by a few poorly-performing seeds, which reduces the statistical power of the test.
+
+\subsection*{Effect on Learning and Sample Efficiency}
+
+Replay factor also affects how quickly useful behaviour is learned.
+
+The curves show that \(\rho=2\) and \(\rho=4\) improve faster than \(\rho=1\) in the early stage, which suggests better sample efficiency. However, \(\rho=4\) and especially \(\rho=8\) pay a price in stability.
+
+Thus, moderate replay improves learning speed, but excessive replay reduces robustness.
+
+\subsection*{Practical Meaning in a Real Setting}
+
+A larger replay factor is useful when collecting data from the environment is expensive but computation is cheap. For example, in robotics, gathering new data may take time and may involve hardware cost or safety risk. In such a setting, it is useful to learn more from each collected transition.
+
+However, a very large replay factor can be harmful when the system must adapt quickly or when stale data becomes less useful. In such cases, too many replay updates may slow down adaptation and make learning unstable.
+
+So, moderate replay is useful in practical settings, but too much replay can reduce reliability.
+
+\subsection*{Relation to Planning}
+
+Replay with \(\rho > 1\) is not planning in the strict model-based sense, because it does not use an explicit model of the environment.
+
+However, it is similar in spirit to planning because it performs extra computation per real interaction. Instead of using a model, it repeatedly reuses stored experience to improve the value function. So, replay with higher \(\rho\) can be viewed as a planning-like increase in computation, but it is not true model-based planning.
+
+\subsection*{Question 4(b): Distribution of Aggregate Performance}
+
+The distribution plot gives a clearer picture of how the replay-factor variants behave across runs.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.78\linewidth]{fig_q4b_dist.png}
+  \caption{Question 4(b): Kernel-density estimates of aggregate performance per seed for \(\rho\in\{1,2,4,8\}\).}
+  \label{fig:q4b_dist}
+\end{figure}
+
+The distribution for \(\rho=2\) is the most concentrated in the better-performance region. This means that \(\rho=2\) not only performs well on average, but also does so more consistently across seeds.
+
+The distribution for \(\rho=1\) is wider, which suggests greater run-to-run variability. The \(\rho=4\) distribution is also broader than \(\rho=2\), indicating that its performance is less reliable even though some runs perform well.
+
+The \(\rho=8\) distribution is shifted further toward worse values and is more spread out. This shows that high replay leads to poorer and less consistent performance.
+
+Table~\ref{tab:q4b_shape} summarises the shape properties of each distribution.
+
+\begin{table}[H]
+\centering
+\caption{Distribution shape analysis of aggregate performance per \(\rho\).}
+\label{tab:q4b_shape}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{ccccc}
+\toprule
+\(\rho\) & Modality & Skewness & Shapiro-Wilk \(p\) & Normal? \\
+\midrule
+1 & Unimodal & $-1.07$ (left-skewed) & 0.0227 & No  \\
+2 & Unimodal & $-2.33$ (strongly left-skewed) & 0.0004 & No  \\
+4 & Unimodal & $-0.64$ (mildly left-skewed) & 0.6024 & Yes \\
+8 & Unimodal & $-0.54$ (mildly left-skewed) & 0.7284 & Yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All four distributions are \textbf{unimodal} — each has a single peak, with no evidence of bimodality or distinct clusters. All are \textbf{left-skewed}: the tails extend toward worse (more negative) performance, meaning a few bad seeds pull the distribution left while most seeds cluster near the better end. The skew is strongest for \(\rho=2\) and \(\rho=1\). The Shapiro-Wilk test confirms that \(\rho=1\) and \(\rho=2\) are \emph{significantly non-Normal} (\(p<0.05\)), while \(\rho=4\) and \(\rho=8\) are approximately Normal. None of them closely resemble a textbook Normal distribution due to the inherent left tails.
+
+Thus, the distribution plot strengthens the earlier conclusion: \(\rho=2\) gives the best balance of performance and consistency, while \(\rho=8\) is the least reliable.
+
+\subsection*{Nuanced Inferences from Distributions}
+
+The distributions add information that the learning curves cannot. In particular, the confidence intervals in the mean curve can be dominated by one or two outlier seeds, giving a misleading picture. The distributions make it clear that \(\rho=1\) and \(\rho=8\) each have a small number of poor-performing seeds that drag down the average, while \(\rho=2\) is tightly concentrated — meaning its good average is not driven by a few lucky seeds but reflects consistent behaviour.
+
+\subsection*{When Distributions Provide Deeper Insights}
+
+Beyond the DQN-MountainCar setting, performance distributions are valuable in several scenarios:
+\begin{itemize}
+    \item \textbf{Comparing algorithms with similar mean performance:} Two algorithms may have nearly identical average learning curves but very different reliability. For example, algorithm A might perform well on most seeds but catastrophically fail on a few, while algorithm B is uniformly mediocre. The mean alone cannot distinguish these; the distribution can.
+    \item \textbf{Safety-critical applications (robotics, autonomous driving):} In deployment, worst-case behaviour matters as much as average behaviour. The distribution reveals the probability of severe failure, which is critical for risk assessment.
+    \item \textbf{Multi-task or multi-environment benchmarks:} When an algorithm is tested across many tasks, the distribution of per-task scores reveals whether the algorithm is a strong generalist or a specialist that excels on a few tasks and fails on others.
+    \item \textbf{Hyperparameter sensitivity studies:} The shape of the performance distribution as a hyperparameter changes can reveal phase transitions — for instance, a bimodal distribution may emerge if a certain hyperparameter causes the algorithm to either converge or diverge with roughly equal probability.
+\end{itemize}
+
+\subsection*{Question 4(c): Tolerance Intervals and Reliability}
+
+The tolerance-interval plot gives more information about variability than the mean curves alone.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.82\linewidth]{fig_q4c_tol.png}
+  \caption{Question 4(c): Mean return with tolerance intervals for \(\rho\in\{1,2,4,8\}\).}
+  \label{fig:q4c_tol}
+\end{figure}
+
+The setting \(\rho=2\) has a relatively narrow interval during most of training, which suggests more reliable behaviour across runs. The setting \(\rho=1\) is also fairly stable, though slightly less concentrated.
+
+The intervals for \(\rho=4\) are wider, especially in the earlier part of training, which shows increased variability. The widest intervals appear for \(\rho=8\), indicating that this setting is the least reliable and most unstable across seeds.
+
+This is important because the mean curve can hide poor runs. A method may look good on average while still failing badly in several runs. The tolerance intervals make this visible.
+
+From these results, \(\rho=2\) appears to be the most reliable choice. The worst-case behaviour is also better than \(\rho=8\), whose wider intervals suggest a greater risk of poor outcomes.
+
+\subsection*{Tolerance Interval vs Confidence Interval}
+
+A confidence interval describes uncertainty in the estimated mean. It answers the question: how accurately has the average performance been estimated?
+
+A tolerance interval is different. It describes the spread of the underlying runs. It answers the question: where do most individual runs lie?
+
+So, confidence intervals are useful for comparing average behaviour, while tolerance intervals are useful for understanding robustness and worst-case performance.
+
+If the number of runs becomes very large, the confidence interval around the mean becomes very small. In contrast, the tolerance interval approaches the true spread of the performance distribution.
+
+\subsection*{Question 4(d): Sensitivity to Mini-Batch Size and Target Refresh Rate}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{fig_q4d_batch.png}
+    \caption{Mini-batch size sensitivity.}
+    \label{fig:q4d_batch}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{fig_q4d_target.png}
+    \caption{Target refresh rate sensitivity.}
+    \label{fig:q4d_target}
+  \end{subfigure}
+  \caption{Question 4(d): Sensitivity of aggregate performance to mini-batch size and target refresh rate for \(\rho\in\{1,4\}\).}
+  \label{fig:q4d_sens}
+\end{figure}
+
+The sensitivity plot (Figure~\ref{fig:q4d_batch}) shows that \(\rho=1\) is fairly robust to the choice of mini-batch size. Its aggregate performance changes only slightly across the tested values.
+
+In contrast, \(\rho=4\) is much more sensitive. In particular, performance drops sharply at small batch size, especially at 32, and the variability is also much larger. The performance improves around 64 and 128, but it is still less stable than \(\rho=1\).
+
+This means that higher replay makes the method more sensitive to the batch-size choice.
+
+An important comparison is the fixed total sample case. Since the effective number of replayed samples per step is \(\rho \times \text{batch size}\), the pair \((\rho=1,\;128)\) uses the same total samples per step as \((\rho=4,\;32)\). However, the results are very different: \(\rho=1\) with larger batch size performs much better and more stably than \(\rho=4\) with smaller batch size.
+
+This shows that many small sequential updates are not equivalent to one update with a larger batch. For this problem, it is better to use a smaller replay factor with a moderate or larger batch size than to use a high replay factor with a very small batch.
+
+The target refresh-rate plot (Figure~\ref{fig:q4d_target}) shows that both \(\rho=1\) and \(\rho=4\) are sensitive to this hyperparameter.
+
+When the target network is refreshed more slowly, performance drops for both settings. This happens because the bootstrap target becomes stale, so the Q-network keeps learning from outdated target values.
+
+The effect is much stronger for \(\rho=4\). Its performance falls much more sharply as the refresh interval increases. This suggests that higher replay depends more strongly on having a reasonably fresh target network.
+
+Thus, \(\rho>1\) does not appear to be more stable when the target network is updated too slowly. In fact, the results suggest the opposite: higher replay can become less stable when combined with a poor target refresh setting.
+
+Overall, \(\rho=1\) is more robust to the target refresh choice, while \(\rho=4\) is more sensitive and can degrade badly when the refresh interval is too large.
+
+\subsection*{Practical Lesson from the Sensitivity Results}
+
+The sensitivity experiments strengthen the main conclusion from the replay-factor study.
+
+A moderate replay factor can improve data usage, but it also makes the method more dependent on careful hyperparameter tuning. In particular, larger replay is more sensitive to small batch sizes and to stale target networks.
+
+This matters in practical deployment. A method that gives slightly better average performance is not always the better choice if it is much harder to tune and less reliable. For applications where robustness is important, a simpler and more stable setting may be preferred over a more aggressive one.
+
+For this problem, \(\rho=2\) appears to give the best balance between performance and reliability, while larger replay factors such as \(\rho=4\) or \(\rho=8\) are less robust.
+% ─────────────────────────────────────────────────────────────────────────────
+\clearpage
+\begin{appendices}
+
+\section{Hyperparameters}
+\label{app:hparams}
+
+Table~\ref{tab:hparams} lists all hyperparameters used across every experiment.
+Unless otherwise stated in the text, only the hyperparameter under study is
+varied; all others are held at the baseline value shown in the table.
+
+\begin{table}[H]
+\centering
+\caption{Hyperparameters for all DQN experiments.}
+\label{tab:hparams}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{llll}
+\toprule
+\textbf{Parameter} & \textbf{Symbol} & \textbf{Baseline value} & \textbf{Range swept} \\
+\midrule
+Discount factor            & \(\gamma\)            & 0.99   & fixed \\
+Learning rate (Adam)       & \(\alpha\)            & \(10^{-3}\) & fixed \\
+Replay buffer capacity     & \(|B|\)               & 50\,000  & fixed \\
+Mini-batch size            & \(b\)                 & 64     & \{16, 32, 64, 128, 256\} \\
+Target update interval     & \(C\)                 & 500 steps & \{125, 250, 500, 1000, 2000\} \\
+\(\epsilon\)-start         & \(\epsilon_0\)        & 1.0    & fixed \\
+\(\epsilon\)-end           & \(\epsilon_\infty\)   & 0.01   & fixed \\
+\(\epsilon\)-decay steps   & \(T_\epsilon\)        & 10\,000 & fixed \\
+Replay factor              & \(\rho\)              & 1      & \{1, 2, 4, 8\} \\
+Truncation length          & \(T\)                 & 2000   & \{200, 1000, 2000\} \\
+Training episodes          & ---                   & 500    & fixed \\
+Max environment steps      & ---                   & 200\,000 & fixed \\
+Number of seeds            & ---                   & 15     & fixed \\
+Smoothing window           & \(w\)                 & 20 ep  & fixed \\
+Q-network hidden width     & ---                   & 64     & fixed \\
+Q-network depth            & ---                   & 2 layers & fixed \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Experiment Configuration tested}
+Three distinct hyperparameter configurations were explored during development
+before settling on the final baseline.  All three share the same architecture
+(\(\text{Input}(2)\!\to\!64\!\to\!64\!\to\!3\), ReLU, Kaiming init) and
+fixed settings (\(\gamma=0.99\), \(\epsilon_0=1.0\), truncation\,=\,2000).
+Only the values that differ are shown.
+
+\begin{table}[H]
+\centering
+\caption{Experimental configurations used to study agent behavior under different hyperparameter settings}
+\label{tab:config_comparison}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Parameter} & \textbf{Config 1 (Main)} & \textbf{Config 2} & \textbf{Config 3} \\
+\midrule
+Max episodes         & 500      & 500      & 550 \\
+Max timesteps        & 200000   & 200000   & 210000 \\
+Truncation length    & 2000     & 2000     & 2000 \\
+Learning rate        & 0.001    & 0.001    & 0.0007 \\
+Discount factor ($\gamma$) & 0.99 & 0.99 & 0.99 \\
+Replay buffer size   & 50000    & 40000    & 60000 \\
+Batch size           & 64       & 32       & 64 \\
+Target update freq.  & 500      & 750      & 800 \\
+$\epsilon$ start     & 1.0      & 1.0      & 1.0 \\
+$\epsilon$ end       & 0.01     & 0.01     & 0.02 \\
+$\epsilon$ decay steps & 10000  & 8000     & 12000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+Config~2 used a smaller buffer and batch with a slower target update, which
+made early learning noisier without improving final performance.
+Config~3 used a lower learning rate and softer \(\epsilon\)-end, which slowed
+convergence.  Config~1 struck the best balance between stability and speed
+and was therefore adopted as the baseline for all Q2--Q4 experiments.
+
+
+
+% (Duplicate config table removed — content is in "Experiment Configuration tested" above.)
+
+
+
+\section{Q-Network Architecture}
+\begin{table}[H]
+\centering
+\caption{Comparison of the two Q-network architectures used in the experiments}
+\label{tab:arch_comparison}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{p{3.2cm} p{5.3cm} p{5.3cm}}
+\toprule
+\textbf{Feature} & \textbf{Architecture 1} & \textbf{Architecture 2} \\
+\midrule
+
+Network type &
+Baseline multilayer perceptron (MLP) &
+Deeper multilayer perceptron (MLP) with normalization \\
+
+Input &
+Environment state $(s)$ consisting of position and velocity &
+Environment state $(s)$ consisting of position and velocity \\
+
+Output &
+One Q-value for each action &
+One Q-value for each action \\
+
+Hidden layers &
+2 hidden layers &
+3 hidden layers \\
+
+Hidden width &
+64 neurons per hidden layer &
+64 neurons per hidden layer \\
+
+Activation function &
+ReLU after each hidden layer &
+ReLU after each hidden layer \\
+
+Normalization &
+No normalization used &
+Layer Normalization applied after the first linear layer \\
+
+Layer structure &
+Input $\rightarrow$ FC(64) $\rightarrow$ ReLU $\rightarrow$ FC(64) $\rightarrow$ ReLU $\rightarrow$ FC($|\mathcal{A}|$) &
+Input $\rightarrow$ FC(64) $\rightarrow$ LayerNorm $\rightarrow$ ReLU $\rightarrow$ FC(64) $\rightarrow$ ReLU $\rightarrow$ FC(64) $\rightarrow$ ReLU $\rightarrow$ FC($|\mathcal{A}|$) \\
+
+Initialization &
+Kaiming (He) initialization for all linear layers &
+Kaiming (He) initialization for all linear layers \\
+
+Model capacity &
+Lower capacity, simpler function approximator &
+Higher capacity, more expressive function approximator \\
+
+Training stability &
+Reasonably stable for simple problems &
+Improved stability in early training due to LayerNorm \\
+
+Computational cost &
+Lower computational cost &
+Slightly higher computational cost \\
+
+Expected behavior &
+Acts as a simple and efficient baseline &
+Can model more complex value functions and potentially learn smoother policies \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+The final architecture is a two-hidden-layer MLP with width 64:
+\[
+  \text{Input}(2)
+  \;\xrightarrow{\text{Linear}+\text{ReLU}}\;
+  64
+  \;\xrightarrow{\text{Linear}+\text{ReLU}}\;
+  64
+  \;\xrightarrow{\text{Linear}}\;
+  3
+\]
+\subsection{Final Architecture Selection}
+
+Based on our experimental evaluation, we selected Architecture 1 as the final Q-network for our DQN agent. This architecture consists of a simple multilayer perceptron with two hidden layers of width 64, each followed by ReLU activations. It takes the environment state (position and velocity) as input and outputs Q-values for all possible actions.
+
+Despite its simplicity, this architecture proved to be sufficiently expressive for the MountainCar environment, which has a low-dimensional state space. The network was able to learn the required momentum-building behavior effectively without the need for additional depth or normalization.
+
+Compared to the deeper architecture, this model exhibited more stable training dynamics and faster convergence. The absence of Layer Normalization and additional layers reduces computational overhead and avoids unnecessary complexity, making the learning process more efficient.
+
+% \section{Additional Performance Analysis}
+% \label{app:extra}
+
+% The plots below were generated from the same saved \texttt{.pkl} files as
+% the main experiments, using the supplementary \texttt{main\_bwnie\_plots.ipynb}
+% notebook.
+
+% \subsection*{Per-\(\rho\) Histogram Grid and Box Plots}
+
+% \begin{figure}[H]
+%   \centering
+%   \begin{subfigure}[b]{0.48\linewidth}
+%     \includegraphics[width=\linewidth]{fig_extra_hist_grid.png}
+%     \caption{2$\times$2 histogram + KDE grid — one panel per \(\rho\).
+%              Shared x-axis reveals the shift in the aggregate performance
+%              distribution as \(\rho\) changes.}
+%     \label{fig:hist_grid}
+%   \end{subfigure}
+%   \hfill
+%   \begin{subfigure}[b]{0.48\linewidth}
+%     \includegraphics[width=\linewidth]{fig_extra_boxplot_agg.png}
+%     \caption{Box plot of aggregate performance (AUC/episodes) per seed.
+%              Median, IQR, and outliers are all visible simultaneously.}
+%     \label{fig:boxplot_agg}
+%   \end{subfigure}
+%   \caption{Alternative views of the Q4(b) performance distribution.
+%            \(\rho=2\) consistently sits highest; \(\rho=8\) has the widest
+%            spread and lowest median.}
+%   \label{fig:dist_extra}
+% \end{figure}
+
+% \begin{figure}[H]
+%   \centering
+%   \begin{subfigure}[b]{0.48\linewidth}
+%     \includegraphics[width=\linewidth]{fig_extra_boxplot_final20.png}
+%     \caption{Box plot of the mean return over the \emph{final 20 episodes}
+%              per seed — a measure of converged performance rather than
+%              training-run average.}
+%     \label{fig:boxplot_final20}
+%   \end{subfigure}
+%   \hfill
+%   \begin{subfigure}[b]{0.48\linewidth}
+%     \includegraphics[width=\linewidth]{fig_extra_violin.png}
+%     \caption{Violin plot of final-20 mean return including all four
+%              \(\rho\) variants and PER. Violins show the full density shape;
+%              wider = more mass at that return level.}
+%     \label{fig:violin}
+%   \end{subfigure}
+%   \caption{Final converged performance distributions.  Both plots confirm
+%            that \(\rho=2\) is the most consistently strong performer and
+%            that PER achieves comparable final returns to vanilla DQN.}
+%   \label{fig:final_perf}
+% \end{figure}
+
+\subsection*{Success Rate over Training}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{fig_extra_success_rho.png}
+    \caption{Fraction of seeds with smoothed return \(>\!-500\) for
+             each \(\rho\) variant.  \(\rho=2\) and \(\rho=4\) cross
+             the 50\% line earliest.}
+    \label{fig:success_rho}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{fig_extra_success_per.png}
+    \caption{Vanilla DQN vs.\ PER success rate.  PER converges at a
+             comparable speed, suggesting that on this sparse-reward task
+             prioritisation does not substantially accelerate discovery.}
+    \label{fig:success_per}
+  \end{subfigure}
+  \caption{Success rate: percentage of 15 seeds that have crossed the
+           return threshold \(-500\) by each episode.  Distinct from the
+           mean-curve view — a method can have a good mean while still
+           having several failing seeds.}
+  \label{fig:success_rate}
+\end{figure}
+
+% \subsection*{Q-Value Landscape}
+
+% \begin{figure}[H]
+%   \centering
+%   \begin{subfigure}[b]{0.48\linewidth}
+%     \includegraphics[width=\linewidth]{fig_extra_qheatmap_dqn.png}
+%     \caption{Vanilla DQN best seed.}
+%     \label{fig:qheatmap_dqn}
+%   \end{subfigure}
+%   \hfill
+%   \begin{subfigure}[b]{0.48\linewidth}
+%     \includegraphics[width=\linewidth]{fig_extra_qheatmap_per.png}
+%     \caption{PER best seed.}
+%     \label{fig:qheatmap_per}
+%   \end{subfigure}
+%   \caption{Max Q-value (\emph{left half of each panel}) and greedy action
+%            (\emph{right half}) plotted across the full
+%            \((x,v)\in[-1.2,0.6]\times[-0.07,0.07]\) state space.  The
+%            action map shows the learned swing-up strategy: the agent pushes
+%            \emph{left} in the upper-right region (high positive velocity)
+%            and \emph{right} in the lower-left (high negative velocity),
+%            timing pushes to align with momentum — exactly the energy-optimal
+%            policy.}
+%   \label{fig:qheatmap}
+% \end{figure}
+
+\section{Statistical Testing Methodology}
+\label{app:stats}
+
+Two statistical tests are used in this report. This section explains why each was chosen and what it measures.
+
+\subsection*{Shapiro-Wilk Test (Normality Check)}
+
+The \textbf{Shapiro-Wilk test} checks whether a sample of data could have been drawn from a Normal distribution. The null hypothesis is that the data \emph{is} normally distributed. A small \(p\)-value (\(p<0.05\)) means we reject normality.
+
+\textbf{Why we use it:} Before choosing a comparison test, we need to know whether the data is Normal. Many common tests (e.g.\ the Student's \(t\)-test) assume normality. If that assumption is violated, those tests can give misleading \(p\)-values. By running Shapiro-Wilk first, we can decide whether to use a parametric or non-parametric comparison test.
+
+\textbf{Our finding:} The aggregate performance scores for \(\rho=1\) (\(p=0.023\)) and \(\rho=2\) (\(p=0.0004\)) are significantly non-Normal, while \(\rho=4\) (\(p=0.60\)) and \(\rho=8\) (\(p=0.73\)) are approximately Normal. Since at least two of the four groups violate normality, we use a non-parametric test for all pairwise comparisons.
+
+\subsection*{Mann-Whitney U Test (Non-Parametric Comparison)}
+
+The \textbf{Mann-Whitney U test} (also called the Wilcoxon rank-sum test) compares two independent groups to determine whether one tends to produce larger values than the other. It works by ranking all observations from both groups together and checking whether one group's ranks are systematically higher.
+
+\textbf{Why we use it instead of a \(t\)-test:}
+\begin{itemize}
+    \item It does \emph{not} assume the data is normally distributed — it operates on ranks, not raw values.
+    \item It is robust to outliers (e.g.\ the few catastrophically bad seeds in \(\rho=1\) that would inflate a \(t\)-test's variance estimate).
+    \item With only \(n=15\) samples per group, the Central Limit Theorem provides a weak guarantee, so non-parametric methods are safer.
+\end{itemize}
+
+\textbf{Interpretation:} A small \(p\)-value (\(p<0.05\)) means the two groups have significantly different aggregate performance — the observed gap is unlikely to be due to random seed variation alone. A large \(p\)-value means we cannot conclude a real difference exists (it may still exist, but 15 seeds are insufficient to detect it).
+
+\section{Bonus: Effect of Prioritized Experience Replay}
+
+\subsection{Motivation}
+
+In all previous experiments, transitions were sampled uniformly from the replay buffer. In this part, Prioritized Experience Replay (PER) is used instead. PER gives higher sampling probability to transitions with larger temporal-difference (TD) error, so the agent focuses more on important or surprising experiences.
+
+The goal here is to check whether PER changes the effect of increasing the replay factor.
+
+\subsection{Comparison of PER with Different Replay Factors}
+
+Figure~\ref{fig:q5_per_curves} compares PER with \(\rho=1\) and \(\rho=2\). Both settings show very similar learning behaviour. The final returns are close, and both methods converge to nearly the same level of performance.
+
+However, PER with \(\rho=2\) is slightly better overall. The summary statistics show:
+\[
+\text{PER } \rho=1: \text{ mean } = -171.03,
+\qquad
+\text{PER } \rho=2: \text{ mean } = -169.51.
+\]
+This gives a small improvement of about
+\[
+\Delta_{\rho=1 \rightarrow 2} \approx +1.53.
+\]
+
+Thus, increasing the replay factor under PER gives a mild benefit, but the effect is not large.ann-Whitney U test
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.82\linewidth]{bonus_plot1_learning_curves.png}
+  \caption{Learning curves for PER with \(\rho=1\) and \(\rho=2\). The two settings behave similarly, with \(\rho=2\) showing a small overall advantage.}
+  \label{fig:q5_per_curves}
+\end{figure}
+
+\subsection{Distribution and Reliability}
+
+The distribution plot in Figure~\ref{fig:q5_per_dist} shows that the two settings have strongly overlapping performance distributions. The distribution for PER with \(\rho=2\) is slightly shifted toward better values, but the difference is small.
+
+The tolerance intervals in Figure~\ref{fig:q5_per_tol} also show similar reliability for both settings. The intervals overlap considerably, which suggests that the practical difference between the two is limited.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{bonus_plot4_kde.png}
+    \caption{Distribution of aggregate performance across seeds.}
+    \label{fig:q5_per_dist}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{bonus_plot5_tolerance.png}
+    \caption{Mean return with tolerance intervals.}
+    \label{fig:q5_per_tol}
+  \end{subfigure}
+  \caption{Performance variability for PER with \(\rho=1\) and \(\rho=2\).}
+  \label{fig:q5_per_var}
+\end{figure}
+
+\subsection{Does PER Diminish or Elevate the Effect of Replay?}
+
+Based on these experiments, PER slightly elevates the effect of increasing replay, but only weakly.
+
+The small gain from \(\rho=1\) to \(\rho=2\) suggests that prioritized sampling makes replay updates more useful. Since PER focuses more on transitions with high TD error, extra replay is spent on more informative samples instead of being spread uniformly over the whole buffer.
+
+However, the improvement is small, and both settings end at very similar final performance. This means that PER does not dramatically change the effect of replay factor on MountainCar.
+
+\subsection{Why Is the Effect Small?}
+
+A likely reason is that MountainCar is a relatively simple task. Once the agent discovers the correct momentum-building strategy, there is limited extra benefit from repeatedly prioritizing transitions. PER helps make replay more informative, but the task does not seem complex enough for this advantage to become very large.
+
+So, PER slightly improves the usefulness of replay, but it does not produce a major performance gap in this problem.
+
+\subsection{Conclusion}
+
+Theperformance bonus experiments show that PER does not strongly change the replay-factor effect, but it does give a small benefit when replay is increased from \(\rho=1\) to \(\rho=2\).
+
+Thus, PER slightly elevates the effect of replay by making replayed updates more informative, but the gain is modest and the final performance remains very similar.
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{bonus_plot2_aggregate_bar.png}
+    \caption{Mean aggregate performance with 95\% confidence intervals.}
+    \label{fig:q5_per_dist}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{bonus_plot3_interaction.png}
+    \caption{Interaction plot showing the small gain from \(\rho=1\) to \(\rho=2\).}
+    \label{fig:q5_per_tol}
+  \end{subfigure}
+  \caption{Aggregate performance comparison for PER with \(\rho=1\) and \(\rho=2\). The results show a small improvement with higher replay, but the overall difference remains limited.}
+  \label{fig:q5_per_var}
+\end{figure}
+\end{appendices}
+
+\end{document}

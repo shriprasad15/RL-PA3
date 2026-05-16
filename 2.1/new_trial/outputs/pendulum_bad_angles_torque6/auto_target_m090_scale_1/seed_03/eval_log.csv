@@ -1,0 +1,2 @@
+eval_return_mean,eval_return_std_over_episodes,mean_abs_angle_error_deg,mean_abs_angular_velocity,mean_squared_torque,target_occupancy,timestep,seed,target_angle_deg,reward_scale,mode,manual_alpha,alpha,condition
+-3398.295729053375,1500.9905936869839,94.04852174281545,0.9879527681473567,0.2321203602480643,0.00735,0,3,-90.0,1.0,auto,,0.19999998807907104,auto_target_m090_scale_1

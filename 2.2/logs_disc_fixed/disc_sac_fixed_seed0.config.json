@@ -1,0 +1,8 @@
+{
+  "env": "LunarLander-v3 (discrete)",
+  "agent": "Discrete SAC (fixed)",
+  "seed": 0,
+  "total_steps": 300000,
+  "target_entropy_ratio": 0.98,
+  "target_entropy": 1.3585684738974928
+}

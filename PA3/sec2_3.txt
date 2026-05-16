@@ -1,0 +1,84 @@
+\section{Section 2.3: Reacher}
+
+\subsection{Setup}
+
+We used \texttt{reacher-easy} from the DeepMind Control Suite. The task consists of a two-joint robotic arm, and the desired behavior is to reach the target sphere as quickly as possible and remain there. We trained three SAC agents, denoted SAC-$R_a$, SAC-$R_b$, and SAC-$R_c$, corresponding to the three reward formulations:
+\begin{align}
+R_a(s,a) &=
+\begin{cases}
+1, & \text{fingertip in target},\\
+-\lVert x_{\text{goal}} - x_{\text{finger}}\rVert - \lVert a\rVert^2, & \text{otherwise},
+\end{cases} \\
+R_b(s,a) &=
+\begin{cases}
+1, & \text{fingertip in target},\\
+0, & \text{otherwise},
+\end{cases} \\
+R_c(s,a) &= -1 \quad \text{per step until the target is reached with low velocity.}
+\end{align}
+
+For $R_a$ and $R_b$, episodes are fixed-length with horizon 1000. For $R_c$, we use a time-to-goal formulation. If the agent does not reach the target within 1000 steps during training, we reset only the arm while keeping the same target and apply a timeout penalty of $-20$. During evaluation, timeout ends the episode with the same penalty.
+
+All agents were trained for 500K environment timesteps using the same SAC setup as before: tanh-squashed Gaussian actor, clipped double Q-learning, target networks, reparameterized actor updates, Adam optimizer, automatic entropy temperature tuning, $\gamma=0.99$, learning rate $3\times10^{-4}$, batch size 256, replay buffer size $10^6$, $\tau=0.005$, and 10K random exploration steps. We evaluated every policy every 10K environment steps using 20 deterministic offline episodes. Curves show mean return with confidence intervals over N\_SEEDS random seeds. For cross-evaluation, each trained policy was evaluated under all three reward formulations.
+
+\subsection{Self-Evaluation}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/reacher_self_eval_combined.png}
+    \caption{Self-evaluation: each Reacher agent is evaluated under the reward formulation on which it was trained. Curves show average undiscounted return versus environment timesteps with confidence intervals across seeds.}
+    \label{fig:reacher-self-eval}
+\end{figure}
+
+Figure~\ref{fig:reacher-self-eval} shows that SAC learns successful policies under all three reward formulations. SAC-$R_b$ learns fastest and reaches the highest self-evaluation return, close to 950. SAC-$R_a$ also learns steadily and converges to around 900. SAC-$R_c$ starts with very negative return because the agent initially takes many steps before reaching the target. However, its return improves close to zero, which is good for $R_c$ because the reward is $-1$ per step until success.
+
+Learning is faster for $R_a$ and $R_b$ in the early phase. $R_a$ provides dense shaping through distance and action penalty, while $R_b$ directly rewards target occupancy. $R_c$ learns slower initially because it gives a harsh negative signal until the agent discovers successful reaching. However, after sufficient training, SAC-$R_c$ also converges well and learns a strong time-to-goal policy.
+
+\subsection{Final-Policy Behavioral Metrics}
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/reacher_steps_to_goal.png}
+        \caption{Steps to goal. Lower is better.}
+        \label{fig:reacher-steps-to-goal}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/reacher_steps_in_target.png}
+        \caption{Steps in target after first reach. Higher is better.}
+        \label{fig:reacher-steps-in-target}
+    \end{subfigure}
+    \caption{Final-policy diagnostics using 500 evaluation episodes of length 5000. Error bars show confidence intervals over evaluation episodes.}
+    \label{fig:reacher-behavior}
+\end{figure}
+
+Figure~\ref{fig:reacher-behavior} evaluates the final learned policies using two behavioral metrics: steps-to-goal and steps-in-target. SAC-$R_c$ reaches the target fastest, requiring roughly 18 steps on average. This is expected because $R_c$ directly penalizes each timestep before reaching the goal. SAC-$R_a$ is second, requiring around 25--30 steps, while SAC-$R_b$ is slower and has higher variance, requiring around 45 steps.
+
+For steps-in-target, all three policies remain inside the target for most of the 5000-step horizon after first reaching it. SAC-$R_a$ and SAC-$R_c$ achieve slightly higher dwell time, around 4700 steps, while SAC-$R_b$ is somewhat lower at around 4450 steps. Thus, SAC-$R_c$ is best for fast reaching, while SAC-$R_a$ and SAC-$R_c$ both achieve strong reach-and-stay behavior.
+
+Overall, SAC-$R_c$ best satisfies the ``reach quickly'' part of the objective, because it directly optimizes time-to-goal. SAC-$R_a$ is the most balanced formulation because it reaches quickly, remains in the target, and also discourages large actions through the action penalty. SAC-$R_b$ also learns the task, but because it is sparse, it gives less guidance about distance, speed, or smoothness.
+
+\subsection{Cross-Evaluation}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/reacher_cross_eval_combined.png}
+    \caption{Cross-evaluation of Reacher policies. Each subplot fixes the evaluation reward and compares SAC-$R_a$, SAC-$R_b$, and SAC-$R_c$.}
+    \label{fig:reacher-cross-eval}
+\end{figure}
+
+Figure~\ref{fig:reacher-cross-eval} shows the cross-evaluation results. Under $R_a$ evaluation, SAC-$R_a$ and SAC-$R_b$ learn faster in the early phase, while SAC-$R_c$ is slower because it does not receive dense distance or action information. However, SAC-$R_c$ eventually catches up and obtains a similar final return. This shows that even though $R_c$ does not explicitly include a distance penalty, the learned policy still reaches and stays near the target.
+
+Under $R_b$ evaluation, SAC-$R_b$ learns fastest, as expected, because $R_b$ directly rewards target occupancy. SAC-$R_a$ also performs well because its dense shaping guides the arm toward the target. SAC-$R_c$ is again slower initially, but eventually reaches comparable performance. This indicates that all three reward formulations ultimately learn target-reaching behavior.
+
+Under $R_c$ evaluation, values closer to zero are better. SAC-$R_c$ achieves the best final performance because it directly minimizes time-to-goal. SAC-$R_a$ and SAC-$R_b$ also improve substantially, but they are not explicitly optimized to minimize the number of steps before reaching the target. Therefore, they remain slightly worse than SAC-$R_c$ under the $R_c$ metric.
+
+These results show that the three rewards are partially aligned but not identical. A policy trained under one reward can perform well under another reward when both encode the same broad behavior, namely reaching the target. However, the reward structure still affects learning speed, variance, and the final style of behavior. $R_a$ provides dense shaping and smoother control, $R_b$ provides sparse target occupancy, and $R_c$ directly optimizes fast reaching.
+
+\paragraph{Overall comparison.}
+In terms of ease of specification, $R_b$ is the simplest because it only requires detecting whether the fingertip is inside the target. $R_a$ is moderately easy to specify but requires access to the fingertip-target distance and includes an action penalty. $R_c$ is conceptually simple as a time-to-goal reward, but is more complex to implement because it involves termination, timeout handling, and reset logic.
+
+In terms of learning efficiency, $R_a$ and $R_b$ learn faster in the early phase. $R_a$ is dense and shaped, while $R_b$ gives a direct occupancy signal. $R_c$ learns slower initially but achieves the best time-to-goal performance. In terms of desired behavior, $R_c$ is best for reaching quickly, while $R_a$ gives the best balanced behavior because it encourages reaching, staying, and smooth control. Therefore, we recommend $R_a$ in practice for stable balanced performance, and $R_c$ when minimizing time-to-goal is the primary objective.

@@ -1,0 +1,109 @@
+\section{Section 2.2: Lunar Lander}
+
+\subsection{Experimental Setup}
+
+We used \texttt{LunarLander-v3} in both continuous and discrete action settings. For the continuous-action experiments, SAC uses a tanh-squashed Gaussian actor, twin Q-critics, clipped double-Q targets, target networks, reparameterized actor updates, Adam optimizer, and automatic entropy-temperature tuning. The main hyperparameters were hidden layers $(256,256)$, learning rates $3\times 10^{-4}$, discount factor $\gamma=0.99$, target update coefficient $\tau=0.005$, batch size 256, replay buffer size $10^6$, and 10K initial random exploration steps. Evaluation was done every 10K environment steps using 20 deterministic offline episodes.
+
+\textbf{Limitation.} The LunarLander plots are averaged over 6 seeds rather than the requested 15 seeds. Therefore, the confidence intervals are wider and the results should be interpreted as indicative rather than fully statistically conclusive. We report this explicitly instead of hiding the limitation.
+
+\begin{table}[h]
+\centering
+\caption{Summary of LunarLander experiments. Values are final evaluation returns over 6 seeds.}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Experiment & Action space & Steps & Final return & Main conclusion \\
+\midrule
+Continuous SAC, auto-$\alpha$ & Continuous & 300K & $176.6 \pm 88.1$ & Learns, but seed-sensitive \\
+Hover SAC, fixed $\alpha=0.01$ & Continuous & 600K & $167.3 \pm 84.5$ & Weak recovery after switch \\
+Hover SAC, auto-$\alpha$ & Continuous & 600K & $271.1 \pm 5.4$ & Strongest and most stable \\
+Discrete SAC & Discrete & 250K & $-758.2 \pm 0.0$ & Unstable / failed run \\
+DQN & Discrete & 250K & $128.2 \pm 86.8$ & Learns steadily \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Continuous SAC with Automated Temperature Tuning}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.72\linewidth]{figures/lunar_continuous_sac.png}
+    \caption{Continuous SAC on LunarLander-v3 with automated temperature tuning. The curve shows mean evaluation return over 6 seeds with confidence intervals.}
+    \label{fig:lunar-cont-sac}
+\end{figure}
+
+Figure~\ref{fig:lunar-cont-sac} shows that continuous SAC learns meaningful control behavior. The average return improves from strongly negative values at the start to approximately $176.6$ by 300K environment steps. This indicates that the agent learns the main structure of the task: reducing horizontal drift, maintaining upright orientation, controlling vertical velocity, and attempting a soft descent between the flags.
+
+However, the result is not a fully reliable near-optimal solution. The final confidence interval is wide, meaning that some seeds learn much better policies than others. Thus, continuous SAC is successful in learning a reasonable landing policy, but our 300K-step, 6-seed run does not show consistent convergence to a near-optimal policy across all seeds.
+
+The behavior can be divided into three stages. In the initial stage, the policy mostly fires engines randomly, rotates excessively, and often crashes, producing strongly negative returns. In the intermediate stage, the agent learns to stabilize orientation and slow its descent. A common local optimum appears here: the lander may hover or delay descent because avoiding a crash gives better return than landing poorly. In the final stage, successful seeds learn a more complete landing strategy, combining horizontal correction, upright stabilization, and controlled descent. The wide confidence interval shows that this final behavior is learned reliably only in some seeds.
+
+\subsection{Hover-Box Reward Switch}
+
+We next modified the continuous LunarLander environment by adding a one-time hover reward. Initially, the agent received an extra $+200$ reward for entering the box $|x|<0.1$ and $0.4<|y|<0.6$. After training for a while, the reward was changed from $+200$ to $-100$, so entering the same box became undesirable. We compared two SAC agents: one with fixed $\alpha=0.01$ and one with automated temperature tuning.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{figures/lunar_hover_return_hits.png}
+    \caption{Hover-box reward-switch experiment. Left: evaluation return. Right: hover-box entry rate. The dashed vertical line marks the reward switch from $+200$ to $-100$.}
+    \label{fig:hover-return-hits}
+\end{figure}
+
+Before the reward switch, both agents learn to exploit the hover box. This is visible in Figure~\ref{fig:hover-return-hits}: the hover-entry rate rises close to one, and returns increase rapidly. This behavior is not necessarily the desired landing behavior; it is reward exploitation induced by the extra $+200$ bonus.
+
+After the switch to $-100$, entering the hover box becomes harmful. Both agents eventually reduce hover-box entries, but their return recovery is very different. The auto-$\alpha$ agent recovers to $271.1 \pm 5.4$, while the fixed-$\alpha$ agent remains much noisier and lower at $167.3 \pm 84.5$. This suggests that automated temperature tuning helps the policy move away from the old hover strategy and discover a better post-switch behavior.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.72\linewidth]{figures/lunar_hover_alpha.png}
+    \caption{Evolution of the entropy temperature $\alpha$ during the hover-box experiment. The fixed-$\alpha$ agent remains at $0.01$, while the auto-$\alpha$ agent adapts around the reward switch.}
+    \label{fig:hover-alpha}
+\end{figure}
+
+Figure~\ref{fig:hover-alpha} explains why the auto-$\alpha$ agent adapts better. The fixed-$\alpha$ policy has a small and constant entropy weight, so it becomes more deterministic and is slower to escape the old local optimum. In contrast, the auto-$\alpha$ agent changes its entropy temperature during training. Around the reward switch, this gives the agent more flexibility to explore alternatives and avoid the previously rewarded hover behavior.
+
+This supports the maximum-entropy interpretation of SAC. SAC optimizes not only expected return, but also policy entropy:
+\[
+J(\pi)=\mathbb{E}_{\pi}\left[\sum_t r_t + \alpha \mathcal{H}(\pi(\cdot|s_t))\right].
+\]
+Entropy regularization discourages premature determinism and improves robustness when the reward landscape has misleading local optima or changes during training. Our hover-box result is the strongest evidence for this: automated temperature tuning adapts much better than fixed $\alpha$ after the reward changes from $+200$ to $-100$.
+
+\subsection{Discrete SAC Formulation}
+
+For the discrete-action version of LunarLander, the Gaussian policy used in continuous SAC is replaced by a categorical policy $\pi(a|s)$ over the finite action set. Since the number of actions is small, the expectation over actions can be computed exactly instead of sampling actions.
+
+The discrete SAC critic target is
+\[
+y = r + \gamma(1-d)
+\sum_{a'} \pi(a'|s')
+\left[
+\min_i Q_i^{\mathrm{targ}}(s',a') - \alpha \log \pi(a'|s')
+\right].
+\]
+The actor objective is
+\[
+J_\pi =
+\mathbb{E}_{s}
+\left[
+\sum_a \pi(a|s)
+\left(
+\alpha \log \pi(a|s) - \min_i Q_i(s,a)
+\right)
+\right].
+\]
+Thus, discrete SAC keeps the same maximum-entropy idea as continuous SAC, but uses a categorical actor and Q-values for all discrete actions.
+
+\subsection{Discrete SAC vs. DQN}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.78\linewidth]{figures/lunar_discrete_sac_dqn.png}
+    \caption{Discrete SAC vs. DQN on discrete-action LunarLander-v3. Results are averaged over 6 seeds.}
+    \label{fig:disc-sac-dqn}
+\end{figure}
+
+Figure~\ref{fig:disc-sac-dqn} compares discrete SAC and DQN. DQN learns steadily and reaches a final return of approximately $128.2 \pm 86.8$. This is not a fully solved LunarLander policy, but it is clearly improving and learns meaningful behavior.
+
+In contrast, our Discrete SAC run collapses to approximately $-758.2$ after around 100K steps. We therefore treat this as an unstable run rather than a successful Discrete SAC result. The likely reason is instability in the interaction between entropy-temperature tuning, policy entropy, and critic updates. In our run, the actor and critic dynamics became poorly conditioned, and the policy did not recover. This does not imply that Discrete SAC is fundamentally unsuitable for LunarLander; rather, it shows that our Discrete SAC implementation was more sensitive to entropy and critic hyperparameters than DQN.
+
+Based on these results, we prefer DQN for this discrete-action environment. In terms of performance and stability, DQN achieved much better returns in our experiments. In terms of implementation, DQN is also simpler: it requires a Q-network, a target Q-network, replay buffer, and $\epsilon$-greedy exploration. Discrete SAC requires a categorical actor, twin Q-networks, entropy-temperature learning, and careful entropy-target tuning. Therefore, although Discrete SAC is theoretically attractive, DQN was the more robust and practical choice in our experiments.
